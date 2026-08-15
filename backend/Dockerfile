@@ -22,6 +22,11 @@ RUN wget https://ziglang.org/download/0.12.0/zig-linux-x86_64-0.12.0.tar.xz \
 # Set working directory
 WORKDIR /app
 
+ENV HOME=/tmp
+ENV XDG_CACHE_HOME=/tmp/.cache
+ENV XDG_DATA_HOME=/tmp/.local/share
+ENV ZIG_GLOBAL_CACHE_DIR=/tmp/zig-cache
+ENV ZIG_LOCAL_CACHE_DIR=/tmp/zig-local-cache
 # Copy package files and install dependencies
 COPY package*.json ./
 RUN npm install
