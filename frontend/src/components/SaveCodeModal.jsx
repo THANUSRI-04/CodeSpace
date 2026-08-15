@@ -6,7 +6,7 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
     const [name, setName] = useState('');
     const [folders, setFolders] = useState([]);
     const [selectedFolderId, setSelectedFolderId] = useState('');
-    
+
     // Inline folder creation
     const [isCreatingFolder, setIsCreatingFolder] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
@@ -27,7 +27,7 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
 
     const fetchFolders = async () => {
         try {
-            const res = await axios.get('http://localhost:5000/api/folders');
+            const res = await axios.get('https://codespace-fb40.onrender.com/api/folders');
             setFolders(res.data.folders || []);
         } catch (err) {
             console.error('Failed to fetch folders', err);
@@ -40,7 +40,7 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
         if (!newFolderName.trim()) return;
         setCreatingFolderLoading(true);
         try {
-            const res = await axios.post('http://localhost:5000/api/folders', { folder_name: newFolderName });
+            const res = await axios.post('https://codespace-fb40.onrender.com/api/folders', { folder_name: newFolderName });
             const newFolder = { id: res.data.folderId, folder_name: newFolderName };
             setFolders([newFolder, ...folders]);
             setSelectedFolderId(res.data.folderId);
@@ -58,10 +58,10 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
             setError('Program name is required');
             return;
         }
-        
+
         setLoading(true);
         setError('');
-        
+
         try {
             await onSave(name, isUpdate, selectedFolderId || null);
             onClose();
@@ -76,26 +76,26 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
         <div className="modal-overlay">
             <div className="modal-content">
                 <h3>Save Program</h3>
-                
+
                 {error && <div style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }}>{error}</div>}
-                
+
                 <div className="form-group">
                     <label>Program Name</label>
-                    <input 
-                        type="text" 
-                        className="form-control" 
-                        value={name} 
-                        onChange={(e) => setName(e.target.value)} 
+                    <input
+                        type="text"
+                        className="form-control"
+                        value={name}
+                        onChange={(e) => setName(e.target.value)}
                         autoFocus
                         placeholder="e.g. Binary Search"
                     />
                 </div>
-                
+
                 <div className="form-group" style={{ marginBottom: '1rem' }}>
                     <label>Folder</label>
                     <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <select 
-                            className="form-control" 
+                        <select
+                            className="form-control"
                             value={selectedFolderId}
                             onChange={(e) => setSelectedFolderId(e.target.value)}
                         >
@@ -108,8 +108,8 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
                 </div>
 
                 {!isCreatingFolder ? (
-                    <button 
-                        className="btn" 
+                    <button
+                        className="btn"
                         style={{ background: 'transparent', color: 'var(--accent-primary)', padding: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
                         onClick={() => setIsCreatingFolder(true)}
                     >
@@ -117,9 +117,9 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
                     </button>
                 ) : (
                     <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
-                        <input 
-                            type="text" 
-                            className="form-control" 
+                        <input
+                            type="text"
+                            className="form-control"
                             value={newFolderName}
                             onChange={(e) => setNewFolderName(e.target.value)}
                             placeholder="Folder Name"
@@ -128,11 +128,11 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
                         <button className="btn btn-primary" onClick={handleCreateFolder} disabled={creatingFolderLoading}>Create</button>
                     </div>
                 )}
-                
+
                 <div style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
                     Language: <span style={{ color: 'var(--text-primary)' }}>{language}</span>
                 </div>
-                
+
                 <div className="modal-actions">
                     <button className="btn btn-secondary" onClick={onClose} disabled={loading}>
                         Cancel

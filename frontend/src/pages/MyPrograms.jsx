@@ -9,14 +9,14 @@ const MyPrograms = () => {
     const [programs, setPrograms] = useState([]); // This holds either uncategorized OR folder-specific programs
     const [currentFolder, setCurrentFolder] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
-    
+
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
-    
+
     // Modal states
     const [isProgramModalOpen, setIsProgramModalOpen] = useState(false);
     const [selectedProgram, setSelectedProgram] = useState(null);
-    
+
     // Create Folder Modal state
     const [isCreateFolderModalOpen, setIsCreateFolderModalOpen] = useState(false);
     const [newFolderName, setNewFolderName] = useState('');
@@ -37,8 +37,8 @@ const MyPrograms = () => {
         setLoading(true);
         try {
             const [foldersRes, programsRes] = await Promise.all([
-                axios.get('http://localhost:5000/api/folders', { withCredentials: true }),
-                axios.get('http://localhost:5000/api/programs', { withCredentials: true })
+                axios.get('https://codespace-fb40.onrender.com/api/folders', { withCredentials: true }),
+                axios.get('https://codespace-fb40.onrender.com/api/programs', { withCredentials: true })
             ]);
             setFolders(foldersRes.data.folders || []);
             setPrograms(programsRes.data.programs || []);
@@ -52,7 +52,7 @@ const MyPrograms = () => {
     const fetchFolderPrograms = async (folderId) => {
         setLoading(true);
         try {
-            const res = await axios.get(`http://localhost:5000/api/folders/${folderId}/programs`, { withCredentials: true });
+            const res = await axios.get(`https://codespace-fb40.onrender.com/folders/${folderId}/programs`, { withCredentials: true });
             setPrograms(res.data.programs || []);
         } catch (err) {
             setError('Failed to fetch folder contents');
@@ -72,7 +72,7 @@ const MyPrograms = () => {
         setCreateFolderError('');
 
         try {
-            await axios.post('http://localhost:5000/api/folders', { folder_name: newFolderName }, { withCredentials: true });
+            await axios.post('https://codespace-fb40.onrender.com/api/folders', { folder_name: newFolderName }, { withCredentials: true });
             setIsCreateFolderModalOpen(false);
             setNewFolderName('');
             fetchRootData();
@@ -86,9 +86,9 @@ const MyPrograms = () => {
     const handleDeleteFolder = async (e, folderId) => {
         e.stopPropagation(); // prevent opening the folder
         if (!window.confirm('Are you sure you want to delete this folder? Programs inside will be moved to Uncategorized.')) return;
-        
+
         try {
-            await axios.delete(`http://localhost:5000/api/folders/${folderId}`, { withCredentials: true });
+            await axios.delete(`https://codespace-fb40.onrender.com/api/folders/${folderId}`, { withCredentials: true });
             fetchRootData();
         } catch (err) {
             alert('Failed to delete folder');
@@ -98,9 +98,9 @@ const MyPrograms = () => {
     const handleDeleteProgram = async (e, id) => {
         e.stopPropagation(); // Prevent modal from opening
         if (!window.confirm('Are you sure you want to delete this program?')) return;
-        
+
         try {
-            await axios.delete(`http://localhost:5000/api/programs/${id}`, { withCredentials: true });
+            await axios.delete(`https://codespace-fb40.onrender.com/api/programs/${id}`, { withCredentials: true });
             if (currentFolder) {
                 fetchFolderPrograms(currentFolder.id);
             } else {
@@ -129,12 +129,12 @@ const MyPrograms = () => {
         navigate(`/compiler?programId=${id}`);
     };
 
-    const filteredFolders = folders.filter(f => 
+    const filteredFolders = folders.filter(f =>
         f.folder_name.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    const filteredPrograms = programs.filter(p => 
-        p.program_name.toLowerCase().includes(searchQuery.toLowerCase()) || 
+    const filteredPrograms = programs.filter(p =>
+        p.program_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
         p.language.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
@@ -145,11 +145,11 @@ const MyPrograms = () => {
         <div className="programs-container">
             <div className="programs-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
                 <h2 style={{ margin: 0, minWidth: '150px' }}>{currentFolder ? currentFolder.folder_name : 'My Programs'}</h2>
-                
+
                 <div style={{ position: 'relative', flex: 1, maxWidth: '500px', margin: '0 2rem' }}>
                     <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
-                    <input 
-                        type="text" 
+                    <input
+                        type="text"
                         className="form-control"
                         placeholder={currentFolder ? "Search programs..." : "Search folders & programs..."}
                         value={searchQuery}
@@ -193,8 +193,8 @@ const MyPrograms = () => {
                                         <div className="folder-count">{folder.program_count || 0} programs</div>
                                     </div>
                                 </div>
-                                <button 
-                                    className="icon-btn" 
+                                <button
+                                    className="icon-btn"
                                     onClick={(e) => handleDeleteFolder(e, folder.id)}
                                     title="Delete Folder"
                                 >
@@ -207,7 +207,7 @@ const MyPrograms = () => {
             )}
 
             <h3 className="section-title">{currentFolder ? 'Programs' : 'Uncategorized Programs'}</h3>
-            
+
             {filteredPrograms.length === 0 ? (
                 <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
                     No programs found.
@@ -237,7 +237,7 @@ const MyPrograms = () => {
             )}
 
             {isProgramModalOpen && selectedProgram && (
-                <ProgramModal 
+                <ProgramModal
                     program={selectedProgram}
                     onClose={() => {
                         setIsProgramModalOpen(false);
@@ -259,11 +259,11 @@ const MyPrograms = () => {
                         )}
                         <div className="form-group" style={{ marginBottom: '1.5rem' }}>
                             <label>Folder Name</label>
-                            <input 
-                                type="text" 
-                                className="form-control" 
-                                value={newFolderName} 
-                                onChange={(e) => setNewFolderName(e.target.value)} 
+                            <input
+                                type="text"
+                                className="form-control"
+                                value={newFolderName}
+                                onChange={(e) => setNewFolderName(e.target.value)}
                                 autoFocus
                                 placeholder="e.g. Algorithms"
                             />

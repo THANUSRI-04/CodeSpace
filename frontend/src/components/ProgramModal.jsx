@@ -31,7 +31,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
         setIsError(false);
         setLocalOutput('Running...');
         try {
-            const res = await axios.post('http://localhost:5000/api/execute', {
+            const res = await axios.post('https://codespace-fb40.onrender.com/api/execute', {
                 language: program.language,
                 code: localCode,
                 input: ''
@@ -48,12 +48,12 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await axios.put(`http://localhost:5000/api/programs/${program.id}`, {
+            await axios.put(`https://codespace-fb40.onrender.com/api/programs/${program.id}`, {
                 program_name: program.program_name,
                 code: localCode,
                 output: localOutput
-            }, { withCredentials: true });
-            
+            });
+
             if (onUpdate) onUpdate();
             showNotification('success', 'Code saved successfully!');
         } catch (error) {
@@ -93,7 +93,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                             <span className="date-text">Saved {formatDate(program.created_at)}</span>
                         </div>
                     </div>
-                    
+
                     {notification.message && (
                         <div style={{
                             padding: '0.5rem 1rem',
@@ -112,7 +112,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                         <X size={20} />
                     </button>
                 </div>
-                
+
                 <div className="program-modal-body">
                     <div className="program-modal-editor-container">
                         <Editor
@@ -130,7 +130,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                             }}
                         />
                     </div>
-                    
+
                     <div className="program-modal-output-section">
                         <div className="output-header">Output</div>
                         <div className={`output-content ${isError ? 'error' : ''}`}>
@@ -138,7 +138,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                         </div>
                     </div>
                 </div>
-                
+
                 <div className="program-modal-footer">
                     <button className="btn btn-secondary" onClick={() => onEdit(program.id)}>
                         <Edit size={16} /> Open in Workspace

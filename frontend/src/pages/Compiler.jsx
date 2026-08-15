@@ -28,7 +28,7 @@ const EDITOR_LANGUAGES = {
 const Compiler = () => {
     const [searchParams] = useSearchParams();
     const programId = searchParams.get('programId');
-    
+
     const [language, setLanguage] = useState('java');
     const [code, setCode] = useState(LANGUAGE_TEMPLATES.java);
     const [input, setInput] = useState('');
@@ -85,7 +85,7 @@ const Compiler = () => {
 
     const fetchProgram = async (id) => {
         try {
-            const res = await axios.get(`http://localhost:5000/api/programs/${id}`, { withCredentials: true });
+            const res = await axios.get(`https://codespace-fb40.onrender.com/api/programs/${id}`, { withCredentials: true });
             const data = res.data.program || res.data;
             setProgramName(data.program_name);
             setLanguage(data.language);
@@ -111,7 +111,7 @@ const Compiler = () => {
         setOutput('Executing code...\n\n');
         setIsError(false);
         try {
-            const res = await axios.post('http://localhost:5000/api/execute', {
+            const res = await axios.post('https://codespace-fb40.onrender.com/api/execute', {
                 language,
                 code,
                 input
@@ -134,14 +134,14 @@ const Compiler = () => {
             output,
             folder_id: folderId
         };
-        
+
         try {
             if (isUpdate && programId) {
-                await axios.put(`http://localhost:5000/api/programs/${programId}`, payload, { withCredentials: true });
+                await axios.put(`https://codespace-fb40.onrender.com/api/programs/${programId}`, payload, { withCredentials: true });
                 setProgramName(name);
                 showNotification('success', 'Program updated successfully!');
             } else {
-                const res = await axios.post('http://localhost:5000/api/programs', payload, { withCredentials: true });
+                const res = await axios.post('https://codespace-fb40.onrender.com/api/programs', payload, { withCredentials: true });
                 setProgramName(name);
                 showNotification('success', 'Program saved successfully!');
             }
@@ -188,9 +188,9 @@ const Compiler = () => {
             <div className="editor-pane">
                 <div className="editor-header">
                     <div className="editor-controls">
-                        <select 
-                            className="select-modern" 
-                            value={language} 
+                        <select
+                            className="select-modern"
+                            value={language}
                             onChange={handleLanguageChange}
                         >
                             <option value="c">C</option>
@@ -214,7 +214,7 @@ const Compiler = () => {
                         </button>
                     </div>
                 </div>
-                
+
                 <div style={{ flex: 1, backgroundColor: '#1e1e1e' }}>
                     <Editor
                         height="100%"
@@ -231,7 +231,7 @@ const Compiler = () => {
                     />
                 </div>
             </div>
-            
+
             <div className="output-pane">
                 <div className="pane-header">
                     <SquareTerminal size={14} /> CONSOLE OUTPUT
@@ -239,15 +239,15 @@ const Compiler = () => {
                 <div className={`console-output ${isError ? 'error' : ''}`} style={{ display: stdinState === 'maximized' ? 'none' : 'block' }}>
                     {output}
                 </div>
-                
+
                 {stdinState === 'normal' && (
-                    <div 
+                    <div
                         className={`resizer-horizontal ${isDragging ? 'dragging' : ''}`}
                         onMouseDown={handleMouseDown}
                     ></div>
                 )}
-                
-                <div 
+
+                <div
                     className={`stdin-area ${stdinState}`}
                     style={stdinState === 'normal' ? { height: `${stdinHeight}px` } : {}}
                 >
@@ -265,7 +265,7 @@ const Compiler = () => {
                         </div>
                     </div>
                     {stdinState !== 'minimized' && (
-                        <textarea 
+                        <textarea
                             className="stdin-textarea"
                             placeholder="Enter custom input here..."
                             value={input}
@@ -275,9 +275,9 @@ const Compiler = () => {
                 </div>
             </div>
 
-            <SaveCodeModal 
-                isOpen={isSaveModalOpen} 
-                onClose={() => setIsSaveModalOpen(false)} 
+            <SaveCodeModal
+                isOpen={isSaveModalOpen}
+                onClose={() => setIsSaveModalOpen(false)}
                 onSave={handleSave}
                 defaultName={programName}
                 language={language.toUpperCase()}
