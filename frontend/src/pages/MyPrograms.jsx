@@ -52,7 +52,7 @@ const MyPrograms = () => {
     const fetchFolderPrograms = async (folderId) => {
         setLoading(true);
         try {
-            const res = await axios.get(`https://codespace-1-g2fn.onrender.com/folders/${folderId}/programs`, { withCredentials: true });
+            const res = await axios.get(`https://codespace-1-g2fn.onrender.com/api/folders/${folderId}/programs`, { withCredentials: true });
             setPrograms(res.data.programs || []);
         } catch (err) {
             setError('Failed to fetch folder contents');
