@@ -54,15 +54,22 @@ const LANGUAGE_CONFIG = {
 
 const executeCommand = (command, input, timeoutMs = 5000) => {
     return new Promise((resolve, reject) => {
-        const childProcess = exec(command, { timeout: timeoutMs }, (error, stdout, stderr) => {
+        const childProcess = exec(command, {
+            timeout: timeoutMs,
+            killSignal: 'SIGKILL',
+            env: { PATH: process.env.PATH } // Isolate environment to hide secrets (DB_PASS, JWT_SECRET, etc)
+        }, (error, stdout, stderr) => {
             if (error) {
                 if (error.killed) {
-                    return resolve({ success: false, output: 'Error: Execution Timed Out' });
+                    return resolve({ success: false, output: `Error: Execution Timed Out after ${timeoutMs}ms` });
                 }
-                return resolve({ success: false, output: stderr || stdout || error.message });
+                const errorMessage = stderr || stdout || error.message;
+                return resolve({ success: false, output: errorMessage });
             }
             if (stderr) {
-                return resolve({ success: false, output: stderr }); // some languages write warnings to stderr
+                // Some languages write warnings/info to stderr. If it didn't error out, 
+                // we treat it as success but provide stderr alongside stdout.
+                return resolve({ success: true, output: (stdout ? stdout + '\n' : '') + stderr });
             }
             resolve({ success: true, output: stdout });
         });
