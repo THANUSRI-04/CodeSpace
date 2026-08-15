@@ -31,7 +31,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
         setIsError(false);
         setLocalOutput('Running...');
         try {
-            const res = await axios.post('https://codespace-fb40.onrender.com/api/execute', {
+            const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/execute', {
                 language: program.language,
                 code: localCode,
                 input: ''
@@ -48,7 +48,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await axios.put(`https://codespace-fb40.onrender.com/api/programs/${program.id}`, {
+            await axios.put(`https://codespace-1-g2fn.onrender.com/api/programs/${program.id}`, {
                 program_name: program.program_name,
                 code: localCode,
                 output: localOutput

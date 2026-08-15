@@ -37,8 +37,8 @@ const MyPrograms = () => {
         setLoading(true);
         try {
             const [foldersRes, programsRes] = await Promise.all([
-                axios.get('https://codespace-fb40.onrender.com/api/folders', { withCredentials: true }),
-                axios.get('https://codespace-fb40.onrender.com/api/programs', { withCredentials: true })
+                axios.get('https://codespace-1-g2fn.onrender.com/api/folders', { withCredentials: true }),
+                axios.get('https://codespace-1-g2fn.onrender.com/api/programs', { withCredentials: true })
             ]);
             setFolders(foldersRes.data.folders || []);
             setPrograms(programsRes.data.programs || []);
@@ -52,7 +52,7 @@ const MyPrograms = () => {
     const fetchFolderPrograms = async (folderId) => {
         setLoading(true);
         try {
-            const res = await axios.get(`https://codespace-fb40.onrender.com/folders/${folderId}/programs`, { withCredentials: true });
+            const res = await axios.get(`https://codespace-1-g2fn.onrender.com/folders/${folderId}/programs`, { withCredentials: true });
             setPrograms(res.data.programs || []);
         } catch (err) {
             setError('Failed to fetch folder contents');
@@ -72,7 +72,7 @@ const MyPrograms = () => {
         setCreateFolderError('');
 
         try {
-            await axios.post('https://codespace-fb40.onrender.com/api/folders', { folder_name: newFolderName }, { withCredentials: true });
+            await axios.post('https://codespace-1-g2fn.onrender.com/api/folders', { folder_name: newFolderName }, { withCredentials: true });
             setIsCreateFolderModalOpen(false);
             setNewFolderName('');
             fetchRootData();
@@ -88,7 +88,7 @@ const MyPrograms = () => {
         if (!window.confirm('Are you sure you want to delete this folder? Programs inside will be moved to Uncategorized.')) return;
 
         try {
-            await axios.delete(`https://codespace-fb40.onrender.com/api/folders/${folderId}`, { withCredentials: true });
+            await axios.delete(`https://codespace-1-g2fn.onrender.com/api/folders/${folderId}`, { withCredentials: true });
             fetchRootData();
         } catch (err) {
             alert('Failed to delete folder');
@@ -100,7 +100,7 @@ const MyPrograms = () => {
         if (!window.confirm('Are you sure you want to delete this program?')) return;
 
         try {
-            await axios.delete(`https://codespace-fb40.onrender.com/api/programs/${id}`, { withCredentials: true });
+            await axios.delete(`https://codespace-1-g2fn.onrender.com/api/programs/${id}`, { withCredentials: true });
             if (currentFolder) {
                 fetchFolderPrograms(currentFolder.id);
             } else {

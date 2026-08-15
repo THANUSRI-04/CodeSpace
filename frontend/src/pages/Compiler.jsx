@@ -85,7 +85,7 @@ const Compiler = () => {
 
     const fetchProgram = async (id) => {
         try {
-            const res = await axios.get(`https://codespace-fb40.onrender.com/api/programs/${id}`, { withCredentials: true });
+            const res = await axios.get(`https://codespace-1-g2fn.onrender.com/api/programs/${id}`, { withCredentials: true });
             const data = res.data.program || res.data;
             setProgramName(data.program_name);
             setLanguage(data.language);
@@ -111,7 +111,7 @@ const Compiler = () => {
         setOutput('Executing code...\n\n');
         setIsError(false);
         try {
-            const res = await axios.post('https://codespace-fb40.onrender.com/api/execute', {
+            const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/execute', {
                 language,
                 code,
                 input
@@ -137,11 +137,11 @@ const Compiler = () => {
 
         try {
             if (isUpdate && programId) {
-                await axios.put(`https://codespace-fb40.onrender.com/api/programs/${programId}`, payload, { withCredentials: true });
+                await axios.put(`https://codespace-1-g2fn.onrender.com/api/programs/${programId}`, payload, { withCredentials: true });
                 setProgramName(name);
                 showNotification('success', 'Program updated successfully!');
             } else {
-                const res = await axios.post('https://codespace-fb40.onrender.com/api/programs', payload, { withCredentials: true });
+                const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/programs', payload, { withCredentials: true });
                 setProgramName(name);
                 showNotification('success', 'Program saved successfully!');
             }
