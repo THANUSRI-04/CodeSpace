@@ -3,14 +3,17 @@ require('dotenv').config();
 
 const pool = mysql.createPool({
     host: process.env.DB_HOST,
+    port: Number(process.env.DB_PORT),
     user: process.env.DB_USER,
     password: process.env.DB_PASSWORD,
     database: process.env.DB_NAME,
+    ssl: {
+        rejectUnauthorized: false
+    },
     waitForConnections: true,
     connectionLimit: 10,
     queueLimit: 0
 });
-
 const initializeDB = async () => {
     try {
         const connection = await mysql.createConnection({
@@ -23,7 +26,7 @@ const initializeDB = async () => {
         await connection.end();
 
         const dbConnection = await pool.getConnection();
-        
+
         await dbConnection.query(`
             CREATE TABLE IF NOT EXISTS users (
                 id INT AUTO_INCREMENT PRIMARY KEY,
