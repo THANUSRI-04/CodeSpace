@@ -7,6 +7,7 @@ import Signup from './pages/Signup';
 import Compiler from './pages/Compiler';
 import MyPrograms from './pages/MyPrograms';
 import { Mail } from 'lucide-react';
+import HelpButton from './components/HelpButton';
 
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = React.useContext(AuthContext);
@@ -45,22 +46,7 @@ function AppRoutes() {
                 <Route path="/compiler" element={<ProtectedRoute><Compiler /></ProtectedRoute>} />
                 <Route path="/my-programs" element={<ProtectedRoute><MyPrograms /></ProtectedRoute>} />
             </Routes>
-            <div style={{
-                textAlign: 'center',
-                padding: '0.75rem',
-                backgroundColor: 'var(--bg-secondary)',
-                borderTop: '1px solid var(--border-color)',
-                color: 'var(--text-secondary)',
-                fontSize: '0.875rem',
-                display: 'flex',
-                justifyContent: 'center',
-                alignItems: 'center',
-                gap: '0.5rem'
-            }}>
-                <span>Facing any queries? let us know at</span>
-                <Mail size={16} />
-                <a href="mailto:thanusrimareboina@gmail.com" style={{ color: 'var(--accent-primary)' }}>thanusrimareboina@gmail.com</a>
-            </div>
+            <HelpButton />
         </div>
     );
 }
