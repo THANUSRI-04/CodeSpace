@@ -130,6 +130,7 @@ button {
 
 .btn-primary:hover {
   background-color: var(--accent-hover);
+  color: white;
   box-shadow: var(--shadow-glow);
 }
 

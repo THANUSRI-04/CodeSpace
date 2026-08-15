@@ -10,6 +10,12 @@ const Signup = () => {
 
     const handleSubmit = async (e) => {
         e.preventDefault();
+        
+        if (!formData.email.endsWith('@gmail.com')) {
+            setError('Please enter a valid Gmail address ending with @gmail.com.');
+            return;
+        }
+
         setError('');
         setLoading(true);
         try {
