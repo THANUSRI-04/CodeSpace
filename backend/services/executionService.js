@@ -54,10 +54,22 @@ const LANGUAGE_CONFIG = {
 
 const executeCommand = (command, input, timeoutMs = 5000) => {
     return new Promise((resolve, reject) => {
+        // Isolate environment to hide secrets, but preserve critical OS variables
+        const safeEnv = { PATH: process.env.PATH };
+        if (process.platform === 'win32') {
+            if (process.env.SystemRoot) safeEnv.SystemRoot = process.env.SystemRoot;
+            if (process.env.SystemDrive) safeEnv.SystemDrive = process.env.SystemDrive;
+            if (process.env.TEMP) safeEnv.TEMP = process.env.TEMP;
+            if (process.env.TMP) safeEnv.TMP = process.env.TMP;
+            if (process.env.ComSpec) safeEnv.ComSpec = process.env.ComSpec;
+        } else {
+            if (process.env.TMPDIR) safeEnv.TMPDIR = process.env.TMPDIR;
+        }
+
         const childProcess = exec(command, {
             timeout: timeoutMs,
             killSignal: 'SIGKILL',
-            env: { PATH: process.env.PATH } // Isolate environment to hide secrets (DB_PASS, JWT_SECRET, etc)
+            env: safeEnv 
         }, (error, stdout, stderr) => {
             if (error) {
                 if (error.killed) {
@@ -76,12 +88,18 @@ const executeCommand = (command, input, timeoutMs = 5000) => {
 
         if (input) {
             childProcess.stdin.write(input);
-            childProcess.stdin.end();
         }
+        childProcess.stdin.end(); // Always end stdin to prevent hangs
     });
 };
 
 exports.executeCode = async (language, code, input) => {
+
+    console.log("========== CODE EXECUTION START ==========");
+    console.log("Language:", language);
+    console.log("Time:", new Date().toISOString());
+
+
     const config = LANGUAGE_CONFIG[language.toLowerCase()];
     if (!config) {
         return { success: false, output: `Language ${language} is not supported.` };
@@ -89,7 +107,7 @@ exports.executeCode = async (language, code, input) => {
 
     const uniqueId = uuidv4();
     const fileName = config.className ? `${config.className}.${config.extension}` : `${uniqueId}.${config.extension}`;
-    
+
     // Create a unique directory for this execution to avoid conflicts (especially for Java and Zig)
     const execDir = path.join(TEMP_DIR, uniqueId);
     const filePath = path.join(execDir, fileName);
@@ -104,7 +122,7 @@ exports.executeCode = async (language, code, input) => {
         if (config.isCompiled) {
             const compileCommand = config.compile(filePath, executablePath);
             const compileResult = await executeCommand(compileCommand, null, 10000);
-            
+
             if (!compileResult.success) {
                 return { success: false, output: `Compilation Error:\n${compileResult.output}` };
             }
@@ -114,8 +132,9 @@ exports.executeCode = async (language, code, input) => {
         }
 
         const runResult = await executeCommand(runCommand, input, 5000);
+
         return runResult;
-        
+
     } catch (error) {
         return { success: false, output: `Server Error: ${error.message}` };
     } finally {
