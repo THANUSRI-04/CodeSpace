@@ -1,9 +1,21 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Editor from '@monaco-editor/react';
-import { Play, Save, Terminal, SquareTerminal, Maximize2, Minimize2, ChevronDown, ChevronUp } from 'lucide-react';
+import { Play, Save, SquareTerminal, Square } from 'lucide-react';
 import SaveCodeModal from '../components/SaveCodeModal';
+import AIAssistant from '../components/AIAssistant';
+import { io } from 'socket.io-client';
+
+const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV);
+const API_URL = isLocal
+    ? 'http://localhost:5000'
+    : 'https://codespace-1-g2fn.onrender.com';
+
+const socket = io(API_URL, {
+    autoConnect: true,
+    transports: ['websocket', 'polling']
+});
 
 const LANGUAGE_TEMPLATES = {
     java: 'public class Main {\n    public static void main(String[] args) {\n        System.out.println("Hello World");\n    }\n}',
@@ -22,7 +34,7 @@ const EDITOR_LANGUAGES = {
     c: 'c',
     javascript: 'javascript',
     rust: 'rust',
-    zig: 'text' // Zig not officially supported by monaco out of the box, text fallback
+    zig: 'text' 
 };
 
 const Compiler = () => {
@@ -31,16 +43,15 @@ const Compiler = () => {
 
     const [language, setLanguage] = useState('java');
     const [code, setCode] = useState(LANGUAGE_TEMPLATES.java);
-    const [input, setInput] = useState('');
     const [output, setOutput] = useState('Run your code to see the output here...');
+    const [terminalInput, setTerminalInput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
     const [isSaveModalOpen, setIsSaveModalOpen] = useState(false);
     const [programName, setProgramName] = useState('');
     const [isError, setIsError] = useState(false);
-    const [stdinState, setStdinState] = useState('normal'); // 'normal', 'minimized', 'maximized'
-    const [stdinHeight, setStdinHeight] = useState(150);
-    const [isDragging, setIsDragging] = useState(false);
     const [notification, setNotification] = useState({ type: '', message: '' });
+
+    const terminalInputRef = useRef(null);
 
     const showNotification = (type, message) => {
         setNotification({ type, message });
@@ -54,34 +65,30 @@ const Compiler = () => {
     }, [programId]);
 
     useEffect(() => {
-        const handleMouseMove = (e) => {
-            if (!isDragging) return;
-            const newHeight = window.innerHeight - e.clientY;
-            if (newHeight > 40 && newHeight < window.innerHeight * 0.8) {
-                setStdinHeight(newHeight);
+        socket.on('output', (data) => {
+            setOutput(prev => prev + data);
+        });
+        
+        socket.on('finished', (data) => {
+            setIsRunning(false);
+            if (data && data.output) {
+                setOutput(prev => prev + data.output);
             }
-        };
-
-        const handleMouseUp = () => {
-            setIsDragging(false);
-        };
-
-        if (isDragging) {
-            document.addEventListener('mousemove', handleMouseMove);
-            document.addEventListener('mouseup', handleMouseUp);
-            document.body.classList.add('dragging-active');
-        } else {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.body.classList.remove('dragging-active');
-        }
+        });
 
         return () => {
-            document.removeEventListener('mousemove', handleMouseMove);
-            document.removeEventListener('mouseup', handleMouseUp);
-            document.body.classList.remove('dragging-active');
+            socket.off('output');
+            socket.off('finished');
         };
-    }, [isDragging]);
+    }, []);
+
+    const consoleContainerRef = useRef(null);
+
+    useEffect(() => {
+        if (consoleContainerRef.current) {
+            consoleContainerRef.current.scrollTop = consoleContainerRef.current.scrollHeight;
+        }
+    }, [output, terminalInput]);
 
     const fetchProgram = async (id) => {
         try {
@@ -100,29 +107,37 @@ const Compiler = () => {
     const handleLanguageChange = (e) => {
         const newLang = e.target.value;
         setLanguage(newLang);
-        // Only set template if we are not editing an existing loaded program's language
         if (!programId) {
             setCode(LANGUAGE_TEMPLATES[newLang]);
         }
     };
 
-    const handleRun = async () => {
+    const handleRun = () => {
+        if (isRunning) return;
         setIsRunning(true);
-        setOutput('Executing code...\n\n');
+        setOutput('');
+        setTerminalInput('');
         setIsError(false);
-        try {
-            const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/execute', {
-                language,
-                code,
-                input
-            });
-            setIsError(!res.data.success);
-            setOutput((res.data.success ? 'Program executed successfully.\n\n' : '') + res.data.output);
-        } catch (err) {
-            setIsError(true);
-            setOutput(err.response?.data?.output || 'Execution failed due to network error.');
-        } finally {
-            setIsRunning(false);
+        socket.emit('execute', { language, code });
+    };
+
+    const handleStop = () => {
+        if (!isRunning) return;
+        socket.emit('stop');
+    };
+
+    const handleTerminalKeyDown = (e) => {
+        if (e.key === 'Enter') {
+            const inputToSend = terminalInput + '\n';
+            socket.emit('input', inputToSend);
+            setOutput(prev => prev + inputToSend);
+            setTerminalInput('');
+        }
+    };
+
+    const handleTerminalClick = () => {
+        if (isRunning && terminalInputRef.current) {
+            terminalInputRef.current.focus();
         }
     };
 
@@ -149,19 +164,6 @@ const Compiler = () => {
             showNotification('error', 'Failed to save program');
             throw error;
         }
-    };
-
-    const toggleStdin = () => {
-        setStdinState(prev => prev === 'minimized' ? 'normal' : 'minimized');
-    };
-
-    const maximizeStdin = () => {
-        setStdinState(prev => prev === 'maximized' ? 'normal' : 'maximized');
-    };
-
-    const handleMouseDown = (e) => {
-        e.preventDefault(); // prevent text selection while dragging
-        setIsDragging(true);
     };
 
     return (
@@ -206,9 +208,15 @@ const Compiler = () => {
                         </select>
                     </div>
                     <div className="editor-controls">
-                        <button className="btn btn-success" onClick={handleRun} disabled={isRunning}>
-                            <Play size={16} /> {isRunning ? 'Running...' : 'Run'}
-                        </button>
+                        {isRunning ? (
+                            <button className="btn btn-danger" onClick={handleStop} style={{ backgroundColor: '#dc2626', color: 'white' }}>
+                                <Square size={16} /> Stop
+                            </button>
+                        ) : (
+                            <button className="btn btn-success" onClick={handleRun}>
+                                <Play size={16} /> Run
+                            </button>
+                        )}
                         <button className="btn btn-primary" onClick={() => setIsSaveModalOpen(true)}>
                             <Save size={16} /> Save Code
                         </button>
@@ -230,47 +238,46 @@ const Compiler = () => {
                         }}
                     />
                 </div>
+                <AIAssistant 
+                    language={language}
+                    code={code}
+                    input={''}
+                    output={output}
+                    isError={isError}
+                />
             </div>
 
             <div className="output-pane">
                 <div className="pane-header">
-                    <SquareTerminal size={14} /> CONSOLE OUTPUT
+                    <SquareTerminal size={14} /> INTERACTIVE CONSOLE
                 </div>
-                <div className={`console-output ${isError ? 'error' : ''}`} style={{ display: stdinState === 'maximized' ? 'none' : 'block' }}>
-                    {output}
-                </div>
-
-                {stdinState === 'normal' && (
-                    <div
-                        className={`resizer-horizontal ${isDragging ? 'dragging' : ''}`}
-                        onMouseDown={handleMouseDown}
-                    ></div>
-                )}
-
-                <div
-                    className={`stdin-area ${stdinState}`}
-                    style={stdinState === 'normal' ? { height: `${stdinHeight}px` } : {}}
+                <div 
+                    ref={consoleContainerRef}
+                    className={`console-output ${isError ? 'error' : ''}`} 
+                    style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', cursor: isRunning ? 'text' : 'default' }}
+                    onClick={handleTerminalClick}
                 >
-                    <div className="pane-header" style={{ borderTop: 'none', justifyContent: 'space-between' }}>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Terminal size={14} /> STANDARD INPUT (STDIN)
+                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: "'Consolas', 'Monaco', monospace" }}>{output}</pre>
+                    {isRunning && (
+                        <div style={{ display: 'flex', marginTop: output.endsWith('\n') || output === '' ? '0' : '0' }}>
+                            <input 
+                                ref={terminalInputRef}
+                                value={terminalInput}
+                                onChange={e => setTerminalInput(e.target.value)}
+                                onKeyDown={handleTerminalKeyDown}
+                                style={{ 
+                                    background: 'transparent', 
+                                    border: 'none', 
+                                    color: 'inherit', 
+                                    outline: 'none', 
+                                    flex: 1, 
+                                    fontFamily: "'Consolas', 'Monaco', monospace",
+                                    fontSize: '0.9rem',
+                                    padding: 0,
+                                    margin: 0
+                                }}
+                            />
                         </div>
-                        <div style={{ display: 'flex', gap: '0.5rem' }}>
-                            <button className="icon-btn" onClick={toggleStdin} title={stdinState === 'minimized' ? 'Restore' : 'Minimize'}>
-                                {stdinState === 'minimized' ? <ChevronUp size={14} /> : <ChevronDown size={14} />}
-                            </button>
-                            <button className="icon-btn" onClick={maximizeStdin} title={stdinState === 'maximized' ? 'Restore' : 'Maximize'}>
-                                {stdinState === 'maximized' ? <Minimize2 size={14} /> : <Maximize2 size={14} />}
-                            </button>
-                        </div>
-                    </div>
-                    {stdinState !== 'minimized' && (
-                        <textarea
-                            className="stdin-textarea"
-                            placeholder="Enter custom input here..."
-                            value={input}
-                            onChange={(e) => setInput(e.target.value)}
-                        ></textarea>
                     )}
                 </div>
             </div>

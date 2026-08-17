@@ -1,11 +1,13 @@
-import React, { useContext } from 'react';
+import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Code2, LogOut, User as UserIcon } from 'lucide-react';
+import { Code2, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
+import GeminiKeyModal from './GeminiKeyModal';
 
 const Navbar = () => {
     const { user, logout } = useContext(AuthContext);
     const navigate = useNavigate();
+    const [isKeyModalOpen, setIsKeyModalOpen] = useState(false);
 
     const handleLogout = () => {
         logout();
@@ -13,14 +15,21 @@ const Navbar = () => {
     };
 
     return (
-        <nav className="navbar">
-            <Link to="/" className="nav-brand">
-                <Code2 size={24} color="var(--accent-primary)" />
-                Code<span>Space</span>
-            </Link>
-            
-            <div className="nav-links">
-                {user ? (
+        <>
+            <nav className="navbar">
+                <Link to="/" className="nav-brand">
+                    <Code2 size={24} color="var(--accent-primary)" />
+                    Code<span>Space</span>
+                </Link>
+                
+                <div className="nav-links">
+                    <button 
+                        className="btn ai-btn-special" 
+                        onClick={() => setIsKeyModalOpen(true)}
+                    >
+                        <Sparkles size={16} /> Generate Your Gemini API Key
+                    </button>
+                    {user ? (
                     <>
                         <Link to="/compiler" className="nav-link">Compiler</Link>
                         <Link to="/my-programs" className="nav-link">My Programs</Link>
@@ -38,8 +47,13 @@ const Navbar = () => {
                         <Link to="/signup" className="btn btn-primary">Sign Up</Link>
                     </>
                 )}
-            </div>
-        </nav>
+                </div>
+            </nav>
+            <GeminiKeyModal 
+                isOpen={isKeyModalOpen} 
+                onClose={() => setIsKeyModalOpen(false)} 
+            />
+        </>
     );
 };
 
