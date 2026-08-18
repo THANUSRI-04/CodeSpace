@@ -1,7 +1,7 @@
 import React, { useContext, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { AuthContext } from '../context/AuthContext';
-import { Code2, LogOut, User as UserIcon, Sparkles } from 'lucide-react';
+import { Code2, LogOut, User as UserIcon, Settings } from 'lucide-react';
 import GeminiKeyModal from './GeminiKeyModal';
 
 const Navbar = () => {
@@ -27,7 +27,7 @@ const Navbar = () => {
                         className="btn ai-btn-special" 
                         onClick={() => setIsKeyModalOpen(true)}
                     >
-                        <Sparkles size={16} /> Generate Your Gemini API Key
+                        <Settings size={16} /> AI Settings
                     </button>
                     {user ? (
                     <>
