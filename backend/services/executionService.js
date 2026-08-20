@@ -171,7 +171,8 @@ const handleSocketExecute = async (socket, { language, code }) => {
         if (config.isCompiled) {
             socket.emit('output', 'Compiling...\n');
             const compileCommand = config.compile(filePath, executablePath);
-            const compileResult = await executeCommand(compileCommand, null, 10000);
+            const compileTimeout = language.toLowerCase() === 'java' ? 30000 : 10000;
+            const compileResult = await executeCommand(compileCommand, null, compileTimeout);
 
             if (!compileResult.success) {
                 socket.emit('output', `Compilation Error:\n${compileResult.output}`);
@@ -260,7 +261,8 @@ exports.executeCode = async (language, code, input) => {
         let runCommand;
         if (config.isCompiled) {
             const compileCommand = config.compile(filePath, executablePath);
-            const compileResult = await executeCommand(compileCommand, null, 10000);
+            const compileTimeout = language.toLowerCase() === 'java' ? 30000 : 10000;
+            const compileResult = await executeCommand(compileCommand, null, compileTimeout);
             if (!compileResult.success) return { success: false, output: `Compilation Error:\n${compileResult.output}` };
             runCommand = config.run(executablePath, execDir);
         } else {
