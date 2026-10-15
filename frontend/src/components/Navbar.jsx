@@ -21,6 +21,11 @@ const Navbar = () => {
         setIsMobileMenuOpen(false);
     };
 
+    const handleCompilerClick = () => {
+        closeMobileMenu();
+        window.dispatchEvent(new CustomEvent('codespace:switch-tab', { detail: 'editor' }));
+    };
+
     const isActive = (path) => {
         return location.pathname === path;
     };
@@ -29,7 +34,7 @@ const Navbar = () => {
         <>
             <header className="navbar-wrapper">
                 <nav className="navbar" aria-label="Main Navigation">
-                    <Link to="/" className="nav-brand" onClick={closeMobileMenu}>
+                    <Link to="/" className="nav-brand" onClick={handleCompilerClick}>
                         <div className="brand-logo-container">
                             <Code2 size={22} className="brand-icon" />
                         </div>
@@ -50,8 +55,9 @@ const Navbar = () => {
                         {user ? (
                             <>
                                 <Link 
-                                    to="/compiler" 
+                                    to={location.pathname === '/compiler' ? `${location.pathname}${location.search}` : '/compiler'} 
                                     className={`nav-link ${isActive('/compiler') ? 'active' : ''}`}
+                                    onClick={handleCompilerClick}
                                 >
                                     <Terminal size={16} />
                                     <span>Compiler</span>
@@ -134,9 +140,9 @@ const Navbar = () => {
                                 {user ? (
                                     <>
                                         <Link 
-                                            to="/compiler" 
+                                            to={location.pathname === '/compiler' ? `${location.pathname}${location.search}` : '/compiler'} 
                                             className={`mobile-nav-item ${isActive('/compiler') ? 'active' : ''}`}
-                                            onClick={closeMobileMenu}
+                                            onClick={handleCompilerClick}
                                         >
                                             <Terminal size={18} />
                                             <span>Compiler</span>

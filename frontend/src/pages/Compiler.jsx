@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useSearchParams, useLocation } from 'react-router-dom';
 import axios from 'axios';
 import Editor from '@monaco-editor/react';
 import { 
@@ -61,10 +61,31 @@ const LANGUAGE_FILENAMES = {
 
 const Compiler = () => {
     const [searchParams] = useSearchParams();
+    const location = useLocation();
     const programId = searchParams.get('programId');
 
-    const [language, setLanguage] = useState('java');
-    const [code, setCode] = useState(LANGUAGE_TEMPLATES.java);
+    const getInitialLanguage = () => {
+        try {
+            const saved = localStorage.getItem('codespace_current_language');
+            if (saved && LANGUAGE_TEMPLATES[saved]) {
+                return saved;
+            }
+        } catch {}
+        return 'java';
+    };
+
+    const getInitialCode = (lang) => {
+        try {
+            const draft = localStorage.getItem(`codespace_draft_${lang}`);
+            if (draft !== null && draft.trim() !== '') {
+                return draft;
+            }
+        } catch {}
+        return LANGUAGE_TEMPLATES[lang] || '';
+    };
+
+    const [language, setLanguage] = useState(getInitialLanguage);
+    const [code, setCode] = useState(() => getInitialCode(getInitialLanguage()));
     const [output, setOutput] = useState('Run your code to see the output here...');
     const [terminalInput, setTerminalInput] = useState('');
     const [isRunning, setIsRunning] = useState(false);
@@ -104,6 +125,50 @@ const Compiler = () => {
         window.addEventListener('resize', handleResize);
         return () => window.removeEventListener('resize', handleResize);
     }, [isOutputCollapsed, activeMobileTab]);
+
+    // Ensure Monaco layout refreshes when editor becomes active
+    useEffect(() => {
+        if (activeMobileTab === 'editor' && editorInstanceRef.current) {
+            requestAnimationFrame(() => {
+                editorInstanceRef.current?.layout();
+            });
+            const timer = setTimeout(() => {
+                editorInstanceRef.current?.layout();
+            }, 80);
+            return () => clearTimeout(timer);
+        }
+    }, [activeMobileTab]);
+
+    // Listen for tab switch events from Navbar or external clicks
+    useEffect(() => {
+        const handleSwitchTab = (e) => {
+            const targetTab = e.detail || 'editor';
+            setActiveMobileTab(targetTab);
+            if (targetTab === 'editor' && editorInstanceRef.current) {
+                requestAnimationFrame(() => {
+                    editorInstanceRef.current?.layout();
+                });
+                setTimeout(() => {
+                    editorInstanceRef.current?.layout();
+                }, 80);
+            }
+        };
+
+        window.addEventListener('codespace:switch-tab', handleSwitchTab);
+        return () => window.removeEventListener('codespace:switch-tab', handleSwitchTab);
+    }, []);
+
+    // Also switch back to editor whenever route /compiler is visited
+    useEffect(() => {
+        if (location.pathname === '/compiler') {
+            setActiveMobileTab('editor');
+            if (editorInstanceRef.current) {
+                requestAnimationFrame(() => {
+                    editorInstanceRef.current?.layout();
+                });
+            }
+        }
+    }, [location.pathname, location.key]);
 
     // Splitter Drag Handlers
     const handleSplitterStart = useCallback((e) => {
@@ -186,16 +251,38 @@ const Compiler = () => {
             setCode(data.code);
             setOutput(data.output || 'No previous output');
         } catch (err) {
-            console.error('Failed to fetch program');
+            console.error('Failed to fetch program', err);
             setIsError(true);
+        }
+    };
+
+    const handleCodeChange = (newVal) => {
+        if (typeof newVal === 'string') {
+            setCode(newVal);
+            if (!programId) {
+                try {
+                    localStorage.setItem(`codespace_draft_${language}`, newVal);
+                } catch {}
+            }
         }
     };
 
     const handleLanguageChange = (e) => {
         const newLang = e.target.value;
         setLanguage(newLang);
+        try {
+            localStorage.setItem('codespace_current_language', newLang);
+        } catch {}
+        
         if (!programId) {
-            setCode(LANGUAGE_TEMPLATES[newLang]);
+            try {
+                const savedDraft = localStorage.getItem(`codespace_draft_${newLang}`);
+                if (savedDraft !== null && savedDraft.trim() !== '') {
+                    setCode(savedDraft);
+                    return;
+                }
+            } catch {}
+            setCode(LANGUAGE_TEMPLATES[newLang] || '');
         }
     };
 
@@ -390,9 +477,14 @@ const Compiler = () => {
                         language={EDITOR_LANGUAGES[language]}
                         theme="vs-dark"
                         value={code}
-                        onChange={(val) => setCode(val || '')}
+                        onChange={(val) => {
+                            if (typeof val === 'string') {
+                                handleCodeChange(val);
+                            }
+                        }}
                         onMount={(editor) => {
                             editorInstanceRef.current = editor;
+                            requestAnimationFrame(() => editor.layout());
                         }}
                         options={{
                             minimap: { enabled: false },
@@ -448,10 +540,37 @@ const Compiler = () => {
                 {/* Console Header & Tabs */}
                 <div className="pane-header">
                     <div className="pane-header-left">
-                        <div className="output-tab active">
-                            <SquareTerminal size={14} className="tab-icon" />
-                            <span>Interactive Console</span>
-                        </div>
+                        {isMobile ? (
+                            <div className="mobile-view-tabs" role="tablist">
+                                <button
+                                    role="tab"
+                                    aria-selected={activeMobileTab === 'editor'}
+                                    className={`mobile-tab-btn ${activeMobileTab === 'editor' ? 'active' : ''}`}
+                                    onClick={() => setActiveMobileTab('editor')}
+                                >
+                                    <Code size={14} />
+                                    <span>Code</span>
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeMobileTab === 'output'}
+                                    className={`mobile-tab-btn ${activeMobileTab === 'output' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setActiveMobileTab('output');
+                                        setHasUnreadOutput(false);
+                                    }}
+                                >
+                                    <SquareTerminal size={14} />
+                                    <span>Output</span>
+                                    {hasUnreadOutput && <span className="tab-unread-dot" />}
+                                </button>
+                            </div>
+                        ) : (
+                            <div className="output-tab active">
+                                <SquareTerminal size={14} className="tab-icon" />
+                                <span>Interactive Console</span>
+                            </div>
+                        )}
                         <span className={`status-pill ${isRunning ? 'status-running' : 'status-ready'}`}>
                             <span className="status-dot-inner" />
                             {isRunning ? 'Running...' : 'Ready'}
@@ -459,6 +578,17 @@ const Compiler = () => {
                     </div>
 
                     <div className="pane-header-actions">
+                        {isMobile && (
+                            <button 
+                                className="btn btn-secondary btn-back-code" 
+                                onClick={() => setActiveMobileTab('editor')}
+                                title="Back to Code Editor"
+                            >
+                                <Code size={14} />
+                                <span>Code</span>
+                            </button>
+                        )}
+
                         <button 
                             className="icon-btn-compact" 
                             onClick={handleClearOutput} 
