@@ -1,8 +1,20 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import axios from 'axios';
 import Editor from '@monaco-editor/react';
-import { Play, Save, SquareTerminal, Square } from 'lucide-react';
+import { 
+    Play, 
+    Save, 
+    SquareTerminal, 
+    Square, 
+    PanelRightClose, 
+    PanelRightOpen, 
+    Trash2, 
+    FileCode, 
+    GripVertical,
+    CheckCircle2,
+    Code
+} from 'lucide-react';
 import SaveCodeModal from '../components/SaveCodeModal';
 import AIAssistant from '../components/AIAssistant';
 import { io } from 'socket.io-client';
@@ -37,6 +49,16 @@ const EDITOR_LANGUAGES = {
     zig: 'text' 
 };
 
+const LANGUAGE_FILENAMES = {
+    java: 'Main.java',
+    python: 'main.py',
+    cpp: 'main.cpp',
+    c: 'main.c',
+    javascript: 'main.js',
+    rust: 'main.rs',
+    zig: 'main.zig'
+};
+
 const Compiler = () => {
     const [searchParams] = useSearchParams();
     const programId = searchParams.get('programId');
@@ -51,12 +73,76 @@ const Compiler = () => {
     const [isError, setIsError] = useState(false);
     const [notification, setNotification] = useState({ type: '', message: '' });
 
+    // Responsive and Split Panel States
+    const [editorWidthPercent, setEditorWidthPercent] = useState(58);
+    const [isOutputCollapsed, setIsOutputCollapsed] = useState(false);
+    const [isDragging, setIsDragging] = useState(false);
+    const [isMobile, setIsMobile] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+    const [activeMobileTab, setActiveMobileTab] = useState('editor'); // 'editor' | 'output'
+    const [hasUnreadOutput, setHasUnreadOutput] = useState(false);
+
+    const workspaceRef = useRef(null);
     const terminalInputRef = useRef(null);
+    const consoleContainerRef = useRef(null);
+    const editorInstanceRef = useRef(null);
 
     const showNotification = (type, message) => {
         setNotification({ type, message });
         setTimeout(() => setNotification({ type: '', message: '' }), 3000);
     };
+
+    // Track window resize for responsive mode
+    useEffect(() => {
+        const handleResize = () => {
+            const mobile = window.innerWidth < 768;
+            setIsMobile(mobile);
+            if (!mobile && isOutputCollapsed && activeMobileTab === 'output') {
+                setIsOutputCollapsed(false);
+            }
+        };
+
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, [isOutputCollapsed, activeMobileTab]);
+
+    // Splitter Drag Handlers
+    const handleSplitterStart = useCallback((e) => {
+        e.preventDefault();
+        setIsDragging(true);
+    }, []);
+
+    useEffect(() => {
+        if (!isDragging) return;
+
+        const handleMove = (e) => {
+            if (!workspaceRef.current) return;
+            const rect = workspaceRef.current.getBoundingClientRect();
+            const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+            const offset = clientX - rect.left;
+            const newPercentage = (offset / rect.width) * 100;
+
+            // Clamping between 22% and 78% for clean ergonomics
+            if (newPercentage >= 22 && newPercentage <= 78) {
+                setEditorWidthPercent(newPercentage);
+            }
+        };
+
+        const handleStop = () => {
+            setIsDragging(false);
+        };
+
+        window.addEventListener('mousemove', handleMove);
+        window.addEventListener('mouseup', handleStop);
+        window.addEventListener('touchmove', handleMove, { passive: false });
+        window.addEventListener('touchend', handleStop);
+
+        return () => {
+            window.removeEventListener('mousemove', handleMove);
+            window.removeEventListener('mouseup', handleStop);
+            window.removeEventListener('touchmove', handleMove);
+            window.removeEventListener('touchend', handleStop);
+        };
+    }, [isDragging]);
 
     useEffect(() => {
         if (programId) {
@@ -67,6 +153,9 @@ const Compiler = () => {
     useEffect(() => {
         socket.on('output', (data) => {
             setOutput(prev => prev + data);
+            if (isMobile && activeMobileTab === 'editor') {
+                setHasUnreadOutput(true);
+            }
         });
         
         socket.on('finished', (data) => {
@@ -80,9 +169,7 @@ const Compiler = () => {
             socket.off('output');
             socket.off('finished');
         };
-    }, []);
-
-    const consoleContainerRef = useRef(null);
+    }, [isMobile, activeMobileTab]);
 
     useEffect(() => {
         if (consoleContainerRef.current) {
@@ -118,12 +205,26 @@ const Compiler = () => {
         setOutput('');
         setTerminalInput('');
         setIsError(false);
+        setHasUnreadOutput(false);
+
+        // On mobile or if collapsed, reveal output to see execution
+        if (isMobile) {
+            setActiveMobileTab('output');
+        } else if (isOutputCollapsed) {
+            setIsOutputCollapsed(false);
+        }
+
         socket.emit('execute', { language, code });
     };
 
     const handleStop = () => {
         if (!isRunning) return;
         socket.emit('stop');
+        setIsRunning(false);
+    };
+
+    const handleClearOutput = () => {
+        setOutput('');
     };
 
     const handleTerminalKeyDown = (e) => {
@@ -156,7 +257,7 @@ const Compiler = () => {
                 setProgramName(name);
                 showNotification('success', 'Program updated successfully!');
             } else {
-                const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/programs', payload, { withCredentials: true });
+                await axios.post('https://codespace-1-g2fn.onrender.com/api/programs', payload, { withCredentials: true });
                 setProgramName(name);
                 showNotification('success', 'Program saved successfully!');
             }
@@ -166,78 +267,150 @@ const Compiler = () => {
         }
     };
 
+    const fileName = programName ? `${programName}.${language === 'javascript' ? 'js' : language === 'python' ? 'py' : language}` : LANGUAGE_FILENAMES[language] || 'Main';
+
     return (
-        <div className="compiler-workspace">
+        <div className={`compiler-workspace ${isDragging ? 'is-resizing' : ''}`} ref={workspaceRef}>
+            {/* Toast Notification */}
             {notification.message && (
-                <div style={{
-                    position: 'fixed',
-                    bottom: '30px',
-                    left: '50%',
-                    transform: 'translateX(-50%)',
-                    zIndex: 2000,
-                    padding: '0.5rem 1rem',
-                    borderRadius: '8px',
-                    backgroundColor: notification.type === 'success' ? '#059669' : '#dc2626',
-                    color: 'white',
-                    fontWeight: '500',
-                    fontSize: '0.9rem',
-                    boxShadow: '0 4px 6px -1px rgba(0, 0, 0, 0.1)',
-                    animation: 'fadeIn 0.3s ease-out'
-                }}>
-                    {notification.message}
+                <div className={`toast-notification ${notification.type === 'success' ? 'toast-success' : 'toast-error'}`}>
+                    <CheckCircle2 size={16} />
+                    <span>{notification.message}</span>
                 </div>
             )}
-            <div className="editor-pane">
+
+            {/* Editor Pane */}
+            <div 
+                className={`editor-pane ${isMobile && activeMobileTab !== 'editor' ? 'pane-hidden-mobile' : ''}`}
+                style={!isMobile ? {
+                    width: isOutputCollapsed ? '100%' : `${editorWidthPercent}%`,
+                    flex: isOutputCollapsed ? '1 1 100%' : `0 0 ${editorWidthPercent}%`
+                } : undefined}
+            >
+                {/* Editor Header / Tabs Bar */}
                 <div className="editor-header">
-                    <div className="editor-controls">
-                        <select
-                            className="select-modern"
-                            value={language}
-                            onChange={handleLanguageChange}
-                        >
-                            <option value="c">C</option>
-                            <option value="cpp">C++</option>
-                            <option value="java">Java</option>
-                            <option value="python">Python</option>
-                            <option value="javascript">JavaScript</option>
-                            <option value="rust">Rust</option>
-                            <option value="zig">Zig</option>
-                        </select>
-                        <select className="select-modern">
-                            <option>Latest Version</option>
-                        </select>
+                    <div className="editor-header-left">
+                        {/* File Tab */}
+                        <div className="editor-file-tab active" title={fileName}>
+                            <FileCode size={14} className="tab-icon" />
+                            <span className="tab-name">{fileName}</span>
+                        </div>
+
+                        {/* Language Selectors */}
+                        <div className="editor-selectors">
+                            <select
+                                className="select-modern lang-select"
+                                value={language}
+                                onChange={handleLanguageChange}
+                                aria-label="Select Programming Language"
+                            >
+                                <option value="c">C</option>
+                                <option value="cpp">C++</option>
+                                <option value="java">Java</option>
+                                <option value="python">Python</option>
+                                <option value="javascript">JavaScript</option>
+                                <option value="rust">Rust</option>
+                                <option value="zig">Zig</option>
+                            </select>
+                            <select className="select-modern version-select" aria-label="Compiler Version">
+                                <option>Latest</option>
+                            </select>
+                        </div>
                     </div>
-                    <div className="editor-controls">
-                        {isRunning ? (
-                            <button className="btn btn-danger" onClick={handleStop} style={{ backgroundColor: '#dc2626', color: 'white' }}>
-                                <Square size={16} /> Stop
-                            </button>
-                        ) : (
-                            <button className="btn btn-success" onClick={handleRun}>
-                                <Play size={16} /> Run
-                            </button>
+
+                    {/* Editor Action Controls */}
+                    <div className="editor-header-right">
+                        {/* Mobile Segmented Tab Switcher */}
+                        {isMobile && (
+                            <div className="mobile-view-tabs" role="tablist">
+                                <button
+                                    role="tab"
+                                    aria-selected={activeMobileTab === 'editor'}
+                                    className={`mobile-tab-btn ${activeMobileTab === 'editor' ? 'active' : ''}`}
+                                    onClick={() => setActiveMobileTab('editor')}
+                                >
+                                    <Code size={14} />
+                                    <span>Code</span>
+                                </button>
+                                <button
+                                    role="tab"
+                                    aria-selected={activeMobileTab === 'output'}
+                                    className={`mobile-tab-btn ${activeMobileTab === 'output' ? 'active' : ''}`}
+                                    onClick={() => {
+                                        setActiveMobileTab('output');
+                                        setHasUnreadOutput(false);
+                                    }}
+                                >
+                                    <SquareTerminal size={14} />
+                                    <span>Output</span>
+                                    {hasUnreadOutput && <span className="tab-unread-dot" />}
+                                </button>
+                            </div>
                         )}
-                        <button className="btn btn-primary" onClick={() => setIsSaveModalOpen(true)}>
-                            <Save size={16} /> Save Code
-                        </button>
+
+                        {/* Run & Save Buttons */}
+                        <div className="action-buttons-group">
+                            {isRunning ? (
+                                <button className="btn btn-danger btn-run" onClick={handleStop} title="Stop execution">
+                                    <Square size={15} />
+                                    <span className="btn-text">Stop</span>
+                                </button>
+                            ) : (
+                                <button className="btn btn-success btn-run" onClick={handleRun} title="Run code (Ctrl + Enter)">
+                                    <Play size={15} />
+                                    <span className="btn-text">Run</span>
+                                </button>
+                            )}
+
+                            <button className="btn btn-primary btn-save" onClick={() => setIsSaveModalOpen(true)} title="Save program">
+                                <Save size={15} />
+                                <span className="btn-text">Save</span>
+                            </button>
+
+                            {/* Reopen Console Button on Desktop when collapsed */}
+                            {!isMobile && isOutputCollapsed && (
+                                <button 
+                                    className="btn btn-secondary btn-icon-only" 
+                                    onClick={() => setIsOutputCollapsed(false)} 
+                                    title="Show Console Panel"
+                                >
+                                    <PanelRightOpen size={16} />
+                                    <span className="btn-text-desktop">Console</span>
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <div style={{ flex: 1, backgroundColor: '#1e1e1e' }}>
+                {/* Monaco Editor Container */}
+                <div className="monaco-wrapper">
                     <Editor
                         height="100%"
+                        width="100%"
                         language={EDITOR_LANGUAGES[language]}
                         theme="vs-dark"
                         value={code}
-                        onChange={(val) => setCode(val)}
+                        onChange={(val) => setCode(val || '')}
+                        onMount={(editor) => {
+                            editorInstanceRef.current = editor;
+                        }}
                         options={{
                             minimap: { enabled: false },
-                            fontSize: 14,
+                            fontSize: isMobile ? 13 : 14,
                             wordWrap: 'on',
-                            padding: { top: 16 }
+                            padding: { top: 12, bottom: 12 },
+                            automaticLayout: true,
+                            scrollBeyondLastLine: false,
+                            lineNumbersMinChars: 3,
+                            renderLineHighlight: 'all',
+                            fontFamily: "'Fira Code', 'Consolas', monospace",
+                            tabSize: 4,
+                            smoothScrolling: true
                         }}
                     />
                 </div>
+
+                {/* AI Assistant Tool */}
                 <AIAssistant 
                     language={language}
                     code={code}
@@ -247,41 +420,95 @@ const Compiler = () => {
                 />
             </div>
 
-            <div className="output-pane">
-                <div className="pane-header">
-                    <SquareTerminal size={14} /> INTERACTIVE CONSOLE
+            {/* Draggable Divider (Desktop/Tablet) */}
+            {!isMobile && !isOutputCollapsed && (
+                <div 
+                    className={`workspace-splitter ${isDragging ? 'is-dragging' : ''}`}
+                    onMouseDown={handleSplitterStart}
+                    onTouchStart={handleSplitterStart}
+                    title="Drag to resize panels"
+                    role="separator"
+                    aria-orientation="vertical"
+                >
+                    <div className="splitter-handle">
+                        <GripVertical size={12} />
+                    </div>
                 </div>
+            )}
+
+            {/* Output / Interactive Console Pane */}
+            <div 
+                className={`output-pane ${isOutputCollapsed && !isMobile ? 'pane-collapsed' : ''} ${isMobile && activeMobileTab !== 'output' ? 'pane-hidden-mobile' : ''}`}
+                style={!isMobile ? {
+                    width: isOutputCollapsed ? '0px' : `${100 - editorWidthPercent}%`,
+                    flex: isOutputCollapsed ? '0 0 0px' : `0 0 ${100 - editorWidthPercent}%`,
+                    display: isOutputCollapsed ? 'none' : 'flex'
+                } : undefined}
+            >
+                {/* Console Header & Tabs */}
+                <div className="pane-header">
+                    <div className="pane-header-left">
+                        <div className="output-tab active">
+                            <SquareTerminal size={14} className="tab-icon" />
+                            <span>Interactive Console</span>
+                        </div>
+                        <span className={`status-pill ${isRunning ? 'status-running' : 'status-ready'}`}>
+                            <span className="status-dot-inner" />
+                            {isRunning ? 'Running...' : 'Ready'}
+                        </span>
+                    </div>
+
+                    <div className="pane-header-actions">
+                        <button 
+                            className="icon-btn-compact" 
+                            onClick={handleClearOutput} 
+                            title="Clear Console Output"
+                            aria-label="Clear Console Output"
+                        >
+                            <Trash2 size={14} />
+                            <span className="icon-btn-label">Clear</span>
+                        </button>
+
+                        {!isMobile && (
+                            <button 
+                                className="icon-btn-compact" 
+                                onClick={() => setIsOutputCollapsed(true)} 
+                                title="Collapse Console Panel"
+                                aria-label="Collapse Console Panel"
+                            >
+                                <PanelRightClose size={15} />
+                            </button>
+                        )}
+                    </div>
+                </div>
+
+                {/* Console Output Area */}
                 <div 
                     ref={consoleContainerRef}
                     className={`console-output ${isError ? 'error' : ''}`} 
-                    style={{ flex: 1, overflowY: 'auto', display: 'flex', flexDirection: 'column', cursor: isRunning ? 'text' : 'default' }}
                     onClick={handleTerminalClick}
                 >
-                    <pre style={{ margin: 0, whiteSpace: 'pre-wrap', wordWrap: 'break-word', fontFamily: "'Consolas', 'Monaco', monospace" }}>{output}</pre>
+                    <pre className="console-pre-text">{output || 'No output to display.'}</pre>
+
+                    {/* Interactive Input Prompt */}
                     {isRunning && (
-                        <div style={{ display: 'flex', marginTop: output.endsWith('\n') || output === '' ? '0' : '0' }}>
+                        <div className="terminal-input-row">
+                            <span className="terminal-prompt-caret">&gt;</span>
                             <input 
                                 ref={terminalInputRef}
                                 value={terminalInput}
                                 onChange={e => setTerminalInput(e.target.value)}
                                 onKeyDown={handleTerminalKeyDown}
-                                style={{ 
-                                    background: 'transparent', 
-                                    border: 'none', 
-                                    color: 'inherit', 
-                                    outline: 'none', 
-                                    flex: 1, 
-                                    fontFamily: "'Consolas', 'Monaco', monospace",
-                                    fontSize: '0.9rem',
-                                    padding: 0,
-                                    margin: 0
-                                }}
+                                className="terminal-live-input"
+                                placeholder="Type input here and press Enter..."
+                                autoFocus
                             />
                         </div>
                     )}
                 </div>
             </div>
 
+            {/* Save Code Modal */}
             <SaveCodeModal
                 isOpen={isSaveModalOpen}
                 onClose={() => setIsSaveModalOpen(false)}

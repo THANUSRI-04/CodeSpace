@@ -29,41 +29,48 @@ const Signup = () => {
     return (
         <div className="auth-container">
             <div className="auth-card">
-                <h2>Create Account</h2>
-                {error && <div style={{ color: 'var(--accent-danger)', marginBottom: '1rem', textAlign: 'center' }}>{error}</div>}
+                <h1 className="auth-title">Create Account</h1>
+                <p className="auth-subtitle">Join Code Space to start coding</p>
+                {error && <div className="form-error-alert">{error}</div>}
 
-                <form onSubmit={handleSubmit}>
+                <form onSubmit={handleSubmit} className="auth-form">
                     <div className="form-group">
-                        <label>Full Name</label>
+                        <label htmlFor="signupName">Full Name</label>
                         <input
+                            id="signupName"
                             type="text"
                             className="form-control"
                             required
                             value={formData.name}
                             onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                             placeholder='Enter your Name'
+                            autoComplete="name"
                         />
                     </div>
                     <div className="form-group">
-                        <label>Email Address</label>
+                        <label htmlFor="signupEmail">Email Address</label>
                         <input
+                            id="signupEmail"
                             type="email"
                             className="form-control"
                             required
                             value={formData.email}
                             onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                             placeholder='example@gmail.com'
+                            autoComplete="email"
                         />
                     </div>
                     <div className="form-group">
-                        <label>Password</label>
+                        <label htmlFor="signupPassword">Password</label>
                         <input
+                            id="signupPassword"
                             type="password"
                             className="form-control"
                             required
                             value={formData.password}
                             onChange={(e) => setFormData({ ...formData, password: e.target.value })}
                             placeholder='Create Password'
+                            autoComplete="new-password"
                         />
                     </div>
                     <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>

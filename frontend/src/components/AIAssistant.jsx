@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Sparkles, X, MessageSquare, Send, Bot, User, Code2, AlertCircle, Lightbulb, Zap, HelpCircle } from 'lucide-react';
+import { Sparkles, X, Send, Bot, User, Code2, AlertCircle, Lightbulb, Zap, HelpCircle } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
 
 const AIAssistant = ({ language, code, input, output, isError }) => {
@@ -164,25 +164,41 @@ General rules:
         { label: 'Give Me a Hint', icon: <Lightbulb size={14} />, prompt: 'Give me a progressive hint on how to improve or fix my code without giving away the full solution.' },
     ];
 
+    const [isMobileScreen, setIsMobileScreen] = useState(typeof window !== 'undefined' ? window.innerWidth < 768 : false);
+
+    useEffect(() => {
+        const handleResize = () => {
+            setIsMobileScreen(window.innerWidth < 768);
+        };
+        window.addEventListener('resize', handleResize);
+        return () => window.removeEventListener('resize', handleResize);
+    }, []);
+
     return (
         <>
             <button 
                 className="ai-fab-btn"
                 onClick={() => setIsOpen(!isOpen)}
                 title="Ask CodeSpace AI"
+                aria-label="Open CodeSpace AI Assistant"
             >
-                <Sparkles size={24} />
-                <span>Ask CodeSpace AI</span>
+                <Sparkles size={20} className="fab-icon" />
+                <span className="fab-label">Ask AI</span>
             </button>
 
             {isOpen && (
-                <div className="ai-panel" style={{ transform: `translate(${position.x}px, ${position.y}px)` }}>
-                    <div className="ai-panel-header" onMouseDown={handleMouseDown}>
+                <div 
+                    className="ai-panel" 
+                    style={!isMobileScreen ? { transform: `translate(${position.x}px, ${position.y}px)` } : undefined}
+                >
+                    <div className="ai-panel-header" onMouseDown={!isMobileScreen ? handleMouseDown : undefined}>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-                            <Sparkles className="ai-icon-gradient" size={20} />
-                            <h3 style={{ margin: 0, fontSize: '1.1rem' }}>CodeSpace AI</h3>
+                            <Sparkles className="ai-icon-gradient" size={18} />
+                            <h3 style={{ margin: 0, fontSize: '1rem', fontWeight: 600 }}>CodeSpace AI</h3>
                         </div>
-                        <button onClick={() => setIsOpen(false)} className="icon-btn"><X size={20} /></button>
+                        <button onClick={() => setIsOpen(false)} className="icon-btn-compact" aria-label="Close AI panel">
+                            <X size={18} />
+                        </button>
                     </div>
 
                     <div className="ai-chat-history">

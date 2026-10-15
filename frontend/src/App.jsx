@@ -6,7 +6,6 @@ import Login from './pages/Login';
 import Signup from './pages/Signup';
 import Compiler from './pages/Compiler';
 import MyPrograms from './pages/MyPrograms';
-import { Mail } from 'lucide-react';
 import HelpButton from './components/HelpButton';
 
 const ProtectedRoute = ({ children }) => {

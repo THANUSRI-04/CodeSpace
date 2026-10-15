@@ -1,17 +1,7 @@
 import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
 import axios from 'axios';
-import { X, Play, Edit, Save, XCircle } from 'lucide-react';
-
-const LANGUAGE_TEMPLATES = {
-    JAVASCRIPT: 'javascript',
-    PYTHON: 'python',
-    JAVA: 'java',
-    C: 'c',
-    CPP: 'cpp',
-    RUST: 'rust',
-    ZIG: 'zig'
-};
+import { X, Play, Edit, Save } from 'lucide-react';
 
 const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
     const [localCode, setLocalCode] = useState(program.code);
@@ -86,7 +76,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
         <div className="program-modal-overlay" onClick={onClose}>
             <div className="program-modal-content" onClick={e => e.stopPropagation()}>
                 <div className="program-modal-header">
-                    <div style={{ flex: 1 }}>
+                    <div className="program-modal-header-info">
                         <h2 className="program-modal-title">{program.program_name}</h2>
                         <div className="program-modal-meta">
                             <span className="lang-badge">{program.language}</span>
@@ -95,20 +85,12 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                     </div>
 
                     {notification.message && (
-                        <div style={{
-                            padding: '0.5rem 1rem',
-                            borderRadius: '4px',
-                            backgroundColor: notification.type === 'success' ? 'rgba(34, 197, 94, 0.2)' : 'rgba(239, 68, 68, 0.2)',
-                            color: notification.type === 'success' ? '#4ade80' : '#f87171',
-                            marginRight: '1rem',
-                            fontSize: '0.9rem',
-                            fontWeight: '500'
-                        }}>
+                        <div className={`program-modal-toast ${notification.type === 'success' ? 'toast-success' : 'toast-error'}`}>
                             {notification.message}
                         </div>
                     )}
 
-                    <button className="icon-btn close-btn" onClick={onClose}>
+                    <button className="icon-btn close-btn" onClick={onClose} aria-label="Close modal">
                         <X size={20} />
                     </button>
                 </div>
@@ -117,16 +99,19 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                     <div className="program-modal-editor-container">
                         <Editor
                             height="100%"
+                            width="100%"
                             language={getMonacoLanguage(program.language)}
                             theme="vs-dark"
                             value={localCode}
-                            onChange={(val) => setLocalCode(val)}
+                            onChange={(val) => setLocalCode(val || '')}
                             options={{
                                 readOnly: false,
                                 minimap: { enabled: false },
-                                fontSize: 14,
+                                fontSize: 13,
                                 scrollBeyondLastLine: false,
-                                padding: { top: 10 }
+                                automaticLayout: true,
+                                wordWrap: 'on',
+                                padding: { top: 10, bottom: 10 }
                             }}
                         />
                     </div>
@@ -140,17 +125,17 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
                 </div>
 
                 <div className="program-modal-footer">
-                    <button className="btn btn-secondary" onClick={() => onEdit(program.id)}>
-                        <Edit size={16} /> Open in Workspace
+                    <button className="btn btn-secondary modal-footer-btn" onClick={() => onEdit(program.id)}>
+                        <Edit size={15} /> <span>Open in Workspace</span>
                     </button>
-                    <button className="btn btn-primary" onClick={handleSave} disabled={isSaving || isRunning}>
-                        <Save size={16} /> {isSaving ? 'Saving...' : 'Save'}
+                    <button className="btn btn-primary modal-footer-btn" onClick={handleSave} disabled={isSaving || isRunning}>
+                        <Save size={15} /> <span>{isSaving ? 'Saving...' : 'Save'}</span>
                     </button>
-                    <button className="btn btn-success" onClick={handleRun} disabled={isRunning || isSaving}>
-                        {isRunning ? 'Running...' : <><Play size={16} /> Run</>}
+                    <button className="btn btn-success modal-footer-btn" onClick={handleRun} disabled={isRunning || isSaving}>
+                        {isRunning ? 'Running...' : <><Play size={15} /> <span>Run</span></>}
                     </button>
-                    <button className="btn btn-secondary" onClick={onClose}>
-                        Close
+                    <button className="btn btn-secondary modal-footer-btn" onClick={onClose}>
+                        <span>Close</span>
                     </button>
                 </div>
             </div>

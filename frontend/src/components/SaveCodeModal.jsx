@@ -73,15 +73,18 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
     };
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content">
-                <h3>Save Program</h3>
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content" onClick={e => e.stopPropagation()}>
+                <div className="modal-header-simple">
+                    <h3>Save Program</h3>
+                </div>
 
-                {error && <div style={{ color: 'var(--accent-danger)', marginBottom: '1rem' }}>{error}</div>}
+                {error && <div className="form-error-alert">{error}</div>}
 
                 <div className="form-group">
-                    <label>Program Name</label>
+                    <label htmlFor="programNameInput">Program Name</label>
                     <input
+                        id="programNameInput"
                         type="text"
                         className="form-control"
                         value={name}
@@ -91,46 +94,49 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
                     />
                 </div>
 
-                <div className="form-group" style={{ marginBottom: '1rem' }}>
-                    <label>Folder</label>
-                    <div style={{ display: 'flex', gap: '0.5rem' }}>
-                        <select
-                            className="form-control"
-                            value={selectedFolderId}
-                            onChange={(e) => setSelectedFolderId(e.target.value)}
-                        >
-                            <option value="">-- No Folder (Uncategorized) --</option>
-                            {folders.map(f => (
-                                <option key={f.id} value={f.id}>📁 {f.folder_name}</option>
-                            ))}
-                        </select>
-                    </div>
+                <div className="form-group">
+                    <label htmlFor="folderSelect">Folder (Optional)</label>
+                    <select
+                        id="folderSelect"
+                        className="form-control"
+                        value={selectedFolderId}
+                        onChange={(e) => setSelectedFolderId(e.target.value)}
+                    >
+                        <option value="">-- No Folder (Uncategorized) --</option>
+                        {folders.map(f => (
+                            <option key={f.id} value={f.id}>📁 {f.folder_name}</option>
+                        ))}
+                    </select>
                 </div>
 
                 {!isCreatingFolder ? (
                     <button
-                        className="btn"
-                        style={{ background: 'transparent', color: 'var(--accent-primary)', padding: 0, marginBottom: '1.5rem', display: 'flex', alignItems: 'center', gap: '0.5rem' }}
+                        className="btn-text-link"
                         onClick={() => setIsCreatingFolder(true)}
                     >
-                        <FolderPlus size={16} /> Create New Folder
+                        <FolderPlus size={15} /> <span>Create New Folder</span>
                     </button>
                 ) : (
-                    <div style={{ display: 'flex', gap: '0.5rem', marginBottom: '1.5rem' }}>
+                    <div className="inline-folder-creator">
                         <input
                             type="text"
                             className="form-control"
                             value={newFolderName}
                             onChange={(e) => setNewFolderName(e.target.value)}
-                            placeholder="Folder Name"
+                            placeholder="New Folder Name"
+                            autoFocus
                         />
-                        <button className="btn btn-secondary" onClick={() => setIsCreatingFolder(false)}>Cancel</button>
-                        <button className="btn btn-primary" onClick={handleCreateFolder} disabled={creatingFolderLoading}>Create</button>
+                        <div className="inline-creator-buttons">
+                            <button className="btn btn-secondary" onClick={() => setIsCreatingFolder(false)}>Cancel</button>
+                            <button className="btn btn-primary" onClick={handleCreateFolder} disabled={creatingFolderLoading}>
+                                {creatingFolderLoading ? 'Creating...' : 'Create'}
+                            </button>
+                        </div>
                     </div>
                 )}
 
-                <div style={{ marginBottom: '1.5rem', color: 'var(--text-secondary)' }}>
-                    Language: <span style={{ color: 'var(--text-primary)' }}>{language}</span>
+                <div className="modal-language-badge">
+                    <span>Language:</span> <strong>{language}</strong>
                 </div>
 
                 <div className="modal-actions">

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
-import { Folder, FolderPlus, ArrowLeft, Trash2, FileCode2, Play, Search } from 'lucide-react';
+import { Folder, FolderPlus, ArrowLeft, Trash2, FileCode2, Search } from 'lucide-react';
 import ProgramModal from '../components/ProgramModal';
 
 const MyPrograms = () => {
@@ -138,103 +138,148 @@ const MyPrograms = () => {
         p.language.toLowerCase().includes(searchQuery.toLowerCase())
     );
 
-    if (loading && folders.length === 0 && programs.length === 0) return <div className="programs-container">Loading...</div>;
-    if (error) return <div className="programs-container"><div style={{ color: 'var(--accent-danger)' }}>{error}</div></div>;
+    if (loading && folders.length === 0 && programs.length === 0) {
+        return (
+            <div className="programs-container">
+                <div className="programs-loading-state">
+                    <div className="loading-spinner" />
+                    <span>Loading your programs & folders...</span>
+                </div>
+            </div>
+        );
+    }
+
+    if (error) {
+        return (
+            <div className="programs-container">
+                <div className="programs-error-state">
+                    <p>{error}</p>
+                    <button className="btn btn-secondary" onClick={fetchRootData}>Retry</button>
+                </div>
+            </div>
+        );
+    }
 
     return (
         <div className="programs-container">
-            <div className="programs-header" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: '2rem' }}>
-                <h2 style={{ margin: 0, minWidth: '150px' }}>{currentFolder ? currentFolder.folder_name : 'My Programs'}</h2>
+            {/* Responsive Header */}
+            <div className="programs-header-bar">
+                <div className="programs-header-left">
+                    <h1 className="programs-main-title">
+                        {currentFolder ? currentFolder.folder_name : 'My Programs'}
+                    </h1>
+                </div>
 
-                <div style={{ position: 'relative', flex: 1, maxWidth: '500px', margin: '0 2rem' }}>
-                    <Search size={18} style={{ position: 'absolute', left: '12px', top: '50%', transform: 'translateY(-50%)', color: 'var(--text-muted)' }} />
+                <div className="programs-search-wrapper">
+                    <Search size={18} className="search-input-icon" />
                     <input
                         type="text"
-                        className="form-control"
+                        className="form-control search-input"
                         placeholder={currentFolder ? "Search programs..." : "Search folders & programs..."}
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ paddingLeft: '2.5rem', width: '100%', borderRadius: '20px' }}
+                        aria-label="Search"
                     />
                 </div>
 
-                <div style={{ display: 'flex', gap: '1rem', minWidth: '220px', justifyContent: 'flex-end' }}>
+                <div className="programs-header-actions">
                     {!currentFolder && (
-                        <button className="btn btn-secondary" onClick={() => {
+                        <button className="btn btn-secondary btn-header-action" onClick={() => {
                             setNewFolderName('');
                             setCreateFolderError('');
                             setIsCreateFolderModalOpen(true);
                         }}>
-                            <FolderPlus size={16} /> New Folder
+                            <FolderPlus size={16} />
+                            <span>New Folder</span>
                         </button>
                     )}
-                    <button className="btn btn-primary" onClick={() => navigate('/compiler')}>
-                        <FileCode2 size={16} /> New Program
+                    <button className="btn btn-primary btn-header-action" onClick={() => navigate('/compiler')}>
+                        <FileCode2 size={16} />
+                        <span>New Program</span>
                     </button>
                 </div>
             </div>
 
             {currentFolder && (
-                <button className="back-btn" onClick={() => { setCurrentFolder(null); setSearchQuery(''); }} style={{ marginBottom: '2rem' }}>
-                    <ArrowLeft size={16} /> My Programs
+                <button className="back-btn" onClick={() => { setCurrentFolder(null); setSearchQuery(''); }}>
+                    <ArrowLeft size={16} />
+                    <span>Back to All Programs</span>
                 </button>
             )}
 
+            {/* Folders Section */}
             {!currentFolder && filteredFolders.length > 0 && (
-                <>
-                    <h3 className="section-title">Folders</h3>
+                <section className="programs-section" aria-label="Folders">
+                    <h2 className="section-title">Folders ({filteredFolders.length})</h2>
                     <div className="folder-list">
                         {filteredFolders.map(folder => (
                             <div key={folder.id} className="folder-card" onClick={() => { setCurrentFolder(folder); setSearchQuery(''); }}>
                                 <div className="folder-info">
                                     <Folder className="folder-icon" size={24} />
-                                    <div>
-                                        <div className="folder-name">{folder.folder_name}</div>
+                                    <div className="folder-text-group">
+                                        <div className="folder-name" title={folder.folder_name}>{folder.folder_name}</div>
                                         <div className="folder-count">{folder.program_count || 0} programs</div>
                                     </div>
                                 </div>
                                 <button
-                                    className="icon-btn"
+                                    className="icon-btn delete-folder-btn"
                                     onClick={(e) => handleDeleteFolder(e, folder.id)}
                                     title="Delete Folder"
+                                    aria-label="Delete Folder"
                                 >
-                                    <Trash2 size={18} />
+                                    <Trash2 size={16} />
                                 </button>
                             </div>
                         ))}
                     </div>
-                </>
+                </section>
             )}
 
-            <h3 className="section-title">{currentFolder ? 'Programs' : 'Uncategorized Programs'}</h3>
+            {/* Programs Section */}
+            <section className="programs-section" aria-label="Programs">
+                <h2 className="section-title">
+                    {currentFolder ? 'Programs in this folder' : 'Uncategorized Programs'}
+                </h2>
 
-            {filteredPrograms.length === 0 ? (
-                <div style={{ textAlign: 'center', padding: '3rem', color: 'var(--text-secondary)' }}>
-                    No programs found.
-                </div>
-            ) : (
-                <div className="programs-list">
-                    {filteredPrograms.map(program => (
-                        <div key={program.id} className="program-card">
-                            <div className="program-info">
-                                <h3>{program.program_name}</h3>
-                                <div className="program-meta">
-                                    <span className="program-lang">{program.language}</span>
-                                    <span>Saved {new Date(program.created_at).toLocaleDateString()}</span>
+                {filteredPrograms.length === 0 ? (
+                    <div className="programs-empty-card">
+                        <FileCode2 size={40} className="empty-icon" />
+                        <h3>No programs found</h3>
+                        <p>
+                            {searchQuery 
+                                ? 'No programs or folders match your search query.' 
+                                : 'You have not saved any programs in this section yet.'}
+                        </p>
+                        <button className="btn btn-primary" onClick={() => navigate('/compiler')}>
+                            Create New Program
+                        </button>
+                    </div>
+                ) : (
+                    <div className="programs-list">
+                        {filteredPrograms.map(program => (
+                            <div key={program.id} className="program-card">
+                                <div className="program-info">
+                                    <h3 title={program.program_name}>{program.program_name}</h3>
+                                    <div className="program-meta">
+                                        <span className="program-lang">{program.language.toUpperCase()}</span>
+                                        <span className="program-date">
+                                            Saved {new Date(program.created_at).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                </div>
+                                <div className="program-actions">
+                                    <button className="btn btn-secondary btn-action" onClick={() => handleOpenProgram(program)}>
+                                        Open
+                                    </button>
+                                    <button className="btn btn-danger btn-action" onClick={(e) => handleDeleteProgram(e, program.id)}>
+                                        Delete
+                                    </button>
                                 </div>
                             </div>
-                            <div className="program-actions">
-                                <button className="btn btn-secondary" onClick={() => handleOpenProgram(program)}>
-                                    Open
-                                </button>
-                                <button className="btn btn-danger" onClick={(e) => handleDeleteProgram(e, program.id)}>
-                                    Delete
-                                </button>
-                            </div>
-                        </div>
-                    ))}
-                </div>
-            )}
+                        ))}
+                    </div>
+                )}
+            </section>
 
             {isProgramModalOpen && selectedProgram && (
                 <ProgramModal
@@ -249,17 +294,18 @@ const MyPrograms = () => {
             )}
 
             {isCreateFolderModalOpen && (
-                <div className="modal-overlay">
-                    <div className="modal-content">
+                <div className="modal-overlay" onClick={() => setIsCreateFolderModalOpen(false)}>
+                    <div className="modal-content" onClick={e => e.stopPropagation()}>
                         <h3>Create New Folder</h3>
                         {createFolderError && (
-                            <div style={{ color: 'var(--accent-danger)', marginBottom: '1rem', fontSize: '0.9rem' }}>
+                            <div className="form-error-alert">
                                 {createFolderError}
                             </div>
                         )}
-                        <div className="form-group" style={{ marginBottom: '1.5rem' }}>
-                            <label>Folder Name</label>
+                        <div className="form-group">
+                            <label htmlFor="newFolderName">Folder Name</label>
                             <input
+                                id="newFolderName"
                                 type="text"
                                 className="form-control"
                                 value={newFolderName}

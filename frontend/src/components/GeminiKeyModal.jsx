@@ -38,25 +38,25 @@ const GeminiKeyModal = ({ isOpen, onClose }) => {
     if (!isOpen) return null;
 
     return (
-        <div className="modal-overlay">
-            <div className="modal-content gemini-modal">
+        <div className="modal-overlay" onClick={onClose}>
+            <div className="modal-content gemini-modal" onClick={e => e.stopPropagation()}>
                 <div className="modal-header">
                     <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
                         <Key className="ai-icon-gradient" size={20} />
                         <h3 style={{ margin: 0 }}>Google Gemini API Key</h3>
                     </div>
-                    <button onClick={onClose} className="icon-btn"><X size={20} /></button>
+                    <button onClick={onClose} className="icon-btn" aria-label="Close modal"><X size={20} /></button>
                 </div>
                 
                 <div className="modal-body">
-                    <p style={{ color: 'var(--text-secondary)', marginBottom: '1.5rem', lineHeight: '1.5' }}>
+                    <p className="gemini-desc-text">
                         CodeSpace AI uses Google's Gemini API to power its intelligent coding assistant. 
                         To use these features, please provide your own Gemini API key. 
                         Your key is stored securely in your browser and is never sent to our servers.
                     </p>
 
                     <div className="api-key-box">
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '0.5rem' }}>
+                        <div className="api-key-box-header">
                             <label style={{ fontWeight: '500' }}>Your API Key</label>
                             {savedKey && (
                                 <span className="status-badge success connected-badge">
@@ -78,6 +78,7 @@ const GeminiKeyModal = ({ isOpen, onClose }) => {
                                 className="icon-inside-input" 
                                 onClick={() => setIsKeyVisible(!isKeyVisible)}
                                 title={isKeyVisible ? "Hide Key" : "Show Key"}
+                                aria-label={isKeyVisible ? "Hide Key" : "Show Key"}
                             >
                                 {isKeyVisible ? <EyeOff size={16} /> : <Eye size={16} />}
                             </button>
@@ -90,24 +91,25 @@ const GeminiKeyModal = ({ isOpen, onClose }) => {
                         </div>
                     )}
 
-                    <div style={{ marginTop: '1.5rem', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                    <div className="gemini-modal-footer">
                         <a 
                             href="https://aistudio.google.com/app/apikey" 
                             target="_blank" 
                             rel="noopener noreferrer"
                             className="link-with-icon"
                         >
-                            Get a key from Google AI Studio <ExternalLink size={14} />
+                            <span>Get key from Google AI Studio</span>
+                            <ExternalLink size={14} />
                         </a>
                         
-                        <div style={{ display: 'flex', gap: '1rem' }}>
+                        <div className="gemini-footer-actions">
                             {savedKey && (
                                 <button onClick={handleRemove} className="btn btn-secondary">
-                                    <Trash2 size={16} /> Remove
+                                    <Trash2 size={15} /> <span>Remove</span>
                                 </button>
                             )}
                             <button onClick={handleSave} className="btn ai-btn-primary">
-                                <Save size={16} /> Save Key
+                                <Save size={15} /> <span>Save Key</span>
                             </button>
                         </div>
                     </div>
