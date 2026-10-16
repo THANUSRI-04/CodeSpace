@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Editor from '@monaco-editor/react';
-import axios from 'axios';
+import { api } from '../config';
 import { X, Play, Edit, Save } from 'lucide-react';
 
 const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
@@ -21,7 +21,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
         setIsError(false);
         setLocalOutput('Running...');
         try {
-            const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/execute', {
+            const res = await api.post('/api/execute', {
                 language: program.language,
                 code: localCode,
                 input: ''
@@ -38,7 +38,7 @@ const ProgramModal = ({ program, onClose, onEdit, onUpdate }) => {
     const handleSave = async () => {
         setIsSaving(true);
         try {
-            await axios.put(`https://codespace-1-g2fn.onrender.com/api/programs/${program.id}`, {
+            await api.put(`/api/programs/${program.id}`, {
                 program_name: program.program_name,
                 code: localCode,
                 output: localOutput

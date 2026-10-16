@@ -21,7 +21,11 @@ const Login = () => {
         try {
             await login(formData.email, formData.password);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to login');
+            const msg = err.response?.data?.message || 
+                (err.code === 'ECONNABORTED' 
+                    ? 'Server took too long to respond. The cloud server may still be waking up — please try again.' 
+                    : 'Failed to login. Please check credentials or try again.');
+            setError(msg);
             setLoading(false);
         }
     };
@@ -61,7 +65,7 @@ const Login = () => {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>
-                        {loading ? 'Logging in...' : 'Login'}
+                        {loading ? 'Connecting & Logging in...' : 'Login'}
                     </button>
                 </form>
 

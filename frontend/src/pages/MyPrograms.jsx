@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import { api } from '../config';
 import { Folder, FolderPlus, ArrowLeft, Trash2, FileCode2, Search } from 'lucide-react';
 import ProgramModal from '../components/ProgramModal';
 
@@ -37,12 +37,12 @@ const MyPrograms = () => {
         setLoading(true);
         try {
             const [foldersRes, programsRes] = await Promise.all([
-                axios.get('https://codespace-1-g2fn.onrender.com/api/folders', { withCredentials: true }),
-                axios.get('https://codespace-1-g2fn.onrender.com/api/programs', { withCredentials: true })
+                api.get('/api/folders'),
+                api.get('/api/programs')
             ]);
             setFolders(foldersRes.data.folders || []);
             setPrograms(programsRes.data.programs || []);
-        } catch (err) {
+        } catch {
             setError('Failed to fetch data');
         } finally {
             setLoading(false);
@@ -52,9 +52,9 @@ const MyPrograms = () => {
     const fetchFolderPrograms = async (folderId) => {
         setLoading(true);
         try {
-            const res = await axios.get(`https://codespace-1-g2fn.onrender.com/api/folders/${folderId}/programs`, { withCredentials: true });
+            const res = await api.get(`/api/folders/${folderId}/programs`);
             setPrograms(res.data.programs || []);
-        } catch (err) {
+        } catch {
             setError('Failed to fetch folder contents');
             setCurrentFolder(null); // Go back if folder doesn't exist
         } finally {
@@ -72,7 +72,7 @@ const MyPrograms = () => {
         setCreateFolderError('');
 
         try {
-            await axios.post('https://codespace-1-g2fn.onrender.com/api/folders', { folder_name: newFolderName }, { withCredentials: true });
+            await api.post('/api/folders', { folder_name: newFolderName });
             setIsCreateFolderModalOpen(false);
             setNewFolderName('');
             fetchRootData();
@@ -88,9 +88,9 @@ const MyPrograms = () => {
         if (!window.confirm('Are you sure you want to delete this folder? Programs inside will be moved to Uncategorized.')) return;
 
         try {
-            await axios.delete(`https://codespace-1-g2fn.onrender.com/api/folders/${folderId}`, { withCredentials: true });
+            await api.delete(`/api/folders/${folderId}`);
             fetchRootData();
-        } catch (err) {
+        } catch {
             alert('Failed to delete folder');
         }
     };
@@ -100,13 +100,13 @@ const MyPrograms = () => {
         if (!window.confirm('Are you sure you want to delete this program?')) return;
 
         try {
-            await axios.delete(`https://codespace-1-g2fn.onrender.com/api/programs/${id}`, { withCredentials: true });
+            await api.delete(`/api/programs/${id}`);
             if (currentFolder) {
                 fetchFolderPrograms(currentFolder.id);
             } else {
                 fetchRootData();
             }
-        } catch (err) {
+        } catch {
             alert('Failed to delete program');
         }
     };

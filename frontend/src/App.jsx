@@ -8,11 +8,13 @@ import Compiler from './pages/Compiler';
 import MyPrograms from './pages/MyPrograms';
 import HelpButton from './components/HelpButton';
 
+import LoadingFallback from './components/LoadingFallback';
+
 const ProtectedRoute = ({ children }) => {
     const { user, loading } = React.useContext(AuthContext);
 
     if (loading) {
-        return <div className="app-container" style={{ justifyContent: 'center', alignItems: 'center' }}>Loading...</div>;
+        return <LoadingFallback />;
     }
 
     if (!user) {

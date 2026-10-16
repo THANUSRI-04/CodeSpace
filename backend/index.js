@@ -30,6 +30,10 @@ app.use(cors({
 }));
 app.use(express.json());
 
+// Health check endpoints (for UptimeRobot / pingers to prevent Render spin-down)
+app.get('/health', (req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: Date.now() }));
+app.get('/api/health', (req, res) => res.status(200).json({ status: 'ok', uptime: process.uptime(), timestamp: Date.now() }));
+
 app.use('/api/auth', authRoutes);
 app.use('/api/programs', programRoutes);
 app.use('/api/folders', folderRoutes);

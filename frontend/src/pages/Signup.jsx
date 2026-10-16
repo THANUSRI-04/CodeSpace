@@ -21,7 +21,11 @@ const Signup = () => {
         try {
             await signup(formData.name, formData.email, formData.password);
         } catch (err) {
-            setError(err.response?.data?.message || 'Failed to sign up');
+            const msg = err.response?.data?.message || 
+                (err.code === 'ECONNABORTED' 
+                    ? 'Server took too long to respond. The cloud server may still be waking up — please try again.' 
+                    : 'Failed to sign up. Please try again.');
+            setError(msg);
             setLoading(false);
         }
     };
@@ -74,7 +78,7 @@ const Signup = () => {
                         />
                     </div>
                     <button type="submit" className="btn btn-primary auth-btn" disabled={loading}>
-                        {loading ? 'Creating account...' : 'Sign Up'}
+                        {loading ? 'Connecting & Creating account...' : 'Sign Up'}
                     </button>
                 </form>
 

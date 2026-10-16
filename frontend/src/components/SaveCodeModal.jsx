@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import axios from 'axios';
+import { api } from '../config';
 import { FolderPlus } from 'lucide-react';
 
 const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditMode }) => {
@@ -27,7 +27,7 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
 
     const fetchFolders = async () => {
         try {
-            const res = await axios.get('https://codespace-1-g2fn.onrender.com/api/folders');
+            const res = await api.get('/api/folders');
             setFolders(res.data.folders || []);
         } catch (err) {
             console.error('Failed to fetch folders', err);
@@ -40,7 +40,7 @@ const SaveCodeModal = ({ isOpen, onClose, onSave, defaultName, language, isEditM
         if (!newFolderName.trim()) return;
         setCreatingFolderLoading(true);
         try {
-            const res = await axios.post('https://codespace-1-g2fn.onrender.com/api/folders', { folder_name: newFolderName });
+            const res = await api.post('/api/folders', { folder_name: newFolderName });
             const newFolder = { id: res.data.folderId, folder_name: newFolderName };
             setFolders([newFolder, ...folders]);
             setSelectedFolderId(res.data.folderId);

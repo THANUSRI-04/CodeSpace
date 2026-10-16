@@ -18,8 +18,8 @@ exports.signup = async (req, res) => {
             [name, email, hashedPassword]
         );
 
-        const payload = { user: { id: result.insertId } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const payload = { user: { id: result.insertId, name, email } };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
         res.status(201).json({ token, user: { id: result.insertId, name, email } });
     } catch (error) {
@@ -41,8 +41,8 @@ exports.login = async (req, res) => {
             return res.status(400).json({ message: 'Invalid credentials' });
         }
 
-        const payload = { user: { id: user.id } };
-        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '1d' });
+        const payload = { user: { id: user.id, name: user.name, email: user.email } };
+        const token = jwt.sign(payload, process.env.JWT_SECRET, { expiresIn: '7d' });
 
         res.json({ token, user: { id: user.id, name: user.name, email: user.email } });
     } catch (error) {

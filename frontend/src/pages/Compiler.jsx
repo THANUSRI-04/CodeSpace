@@ -1,6 +1,5 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useSearchParams, useLocation } from 'react-router-dom';
-import axios from 'axios';
 import Editor from '@monaco-editor/react';
 import { 
     Play, 
@@ -18,11 +17,7 @@ import {
 import SaveCodeModal from '../components/SaveCodeModal';
 import AIAssistant from '../components/AIAssistant';
 import { io } from 'socket.io-client';
-
-const isLocal = window.location.hostname === 'localhost' || window.location.hostname === '127.0.0.1' || (typeof import.meta !== 'undefined' && import.meta.env && import.meta.env.DEV);
-const API_URL = isLocal
-    ? 'http://localhost:5000'
-    : 'https://codespace-1-g2fn.onrender.com';
+import { api, API_URL } from '../config';
 
 const socket = io(API_URL, {
     autoConnect: true,
@@ -244,7 +239,7 @@ const Compiler = () => {
 
     const fetchProgram = async (id) => {
         try {
-            const res = await axios.get(`https://codespace-1-g2fn.onrender.com/api/programs/${id}`, { withCredentials: true });
+            const res = await api.get(`/api/programs/${id}`);
             const data = res.data.program || res.data;
             setProgramName(data.program_name);
             setLanguage(data.language);
@@ -340,11 +335,11 @@ const Compiler = () => {
 
         try {
             if (isUpdate && programId) {
-                await axios.put(`https://codespace-1-g2fn.onrender.com/api/programs/${programId}`, payload, { withCredentials: true });
+                await api.put(`/api/programs/${programId}`, payload);
                 setProgramName(name);
                 showNotification('success', 'Program updated successfully!');
             } else {
-                await axios.post('https://codespace-1-g2fn.onrender.com/api/programs', payload, { withCredentials: true });
+                await api.post('/api/programs', payload);
                 setProgramName(name);
                 showNotification('success', 'Program saved successfully!');
             }
